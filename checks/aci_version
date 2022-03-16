@@ -1,0 +1,43 @@
+#!/usr/bin/python
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
+
+"""
+Check_MK Checks to use with aci-ds Datasource
+Place into local check-mk checks directory, e.g ~/local/share/check_mk/checks in OMD
+
+Author:     Samuel Zehnder, zehnder@netcloud.ch
+Version:    0.5
+
+"""
+
+def inventory_aci_version(info):
+    yield None, {}
+
+def check_aci_version(item, params, info):
+    # node-3 3.0(1k)
+    # node-104 n9000-13.0(1k)
+    state = 3
+    msg = 'Sorry - item not found'
+
+    versions = []
+
+    for node, version in info:
+        if version[-7:] not in versions:
+            versions.append(version[-7:])
+
+    if len(versions) == 1:
+        state = 0
+        msg = 'Everyone seems to be running {0}'.format(versions[0])
+    else:
+        state = 1
+        msg = 'Multiple Versions detected: {0}'.format(versions)
+
+    return state, msg
+
+
+check_info["aci_version"] = {
+    'check_function': check_aci_version,
+    'inventory_function': inventory_aci_version,
+    'service_description': 'Fabric Versions',
+    'has_perfdata': False,
+}
