@@ -12,7 +12,7 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-from typing import Tuple, List, Dict
+from typing import Tuple, List
 
 import pytest
 
@@ -69,7 +69,7 @@ from cmk.base.plugins.agent_based.aci_version import (
         ),
     ],
 )
-def test_parse_aci_version(string_table: List[List[str]], expected_section: Dict[str, ACINode]) -> None:
+def test_parse_aci_version(string_table: List[List[str]], expected_section: List[ACINode]) -> None:
     assert parse_aci_version(string_table) == expected_section
 
 
@@ -110,5 +110,5 @@ def test_parse_aci_version(string_table: List[List[str]], expected_section: Dict
         ),
     ],
 )
-def test_check_aci_version(section: Dict[str, ACINode], expected_check_result: Tuple) -> None:
+def test_check_aci_version(section: List[ACINode], expected_check_result: Tuple) -> None:
     assert tuple(check_aci_version(section)) == expected_check_result

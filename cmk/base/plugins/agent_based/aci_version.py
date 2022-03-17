@@ -60,7 +60,7 @@ register.agent_section(
 )
 
 
-def discover_aci_version(section) -> DiscoveryResult:
+def discover_aci_version(section: List[ACINode]) -> DiscoveryResult:
     yield Service()
 
 
