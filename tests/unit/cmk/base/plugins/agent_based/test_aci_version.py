@@ -20,7 +20,7 @@ from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State
 from cmk.base.plugins.agent_based.aci_version import (
     parse_aci_version,
     check_aci_version,
-    ACINode,
+    ACINodeVersion,
 )
 
 
@@ -29,7 +29,7 @@ from cmk.base.plugins.agent_based.aci_version import (
     [
         (
             [["node-2", "4.2(5n)"]],
-            [ACINode(name="node-2", version="4.2(5n)")]
+            [ACINodeVersion(name="node-2", version="4.2(5n)")]
         ),
         (
             [
@@ -50,26 +50,26 @@ from cmk.base.plugins.agent_based.aci_version import (
                 ['node-114', 'n9000-14.2(5n)'],
             ],
             [
-                ACINode(name='node-1', version='4.2(5n)'),
-                ACINode(name='node-3', version='4.2(5n)'),
-                ACINode(name='node-2', version='4.2(5n)'),
-                ACINode(name='node-101', version='n9000-14.2(5n)'),
-                ACINode(name='node-113', version='n9000-14.2(5n)'),
-                ACINode(name='node-102', version='n9000-14.2(5n)'),
-                ACINode(name='node-201', version='n9000-14.2(5n)'),
-                ACINode(name='node-211', version='n9000-14.2(5n)'),
-                ACINode(name='node-213', version='n9000-14.2(5n)'),
-                ACINode(name='node-202', version='n9000-14.2(5n)'),
-                ACINode(name='node-212', version='n9000-14.2(5n)'),
-                ACINode(name='node-214', version='n9000-14.2(5n)'),
-                ACINode(name='node-111', version='n9000-14.2(5n)'),
-                ACINode(name='node-112', version='n9000-14.2(5n)'),
-                ACINode(name='node-114', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-1', version='4.2(5n)'),
+                ACINodeVersion(name='node-3', version='4.2(5n)'),
+                ACINodeVersion(name='node-2', version='4.2(5n)'),
+                ACINodeVersion(name='node-101', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-113', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-102', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-201', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-211', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-213', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-202', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-212', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-214', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-111', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-112', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-114', version='n9000-14.2(5n)'),
             ]
         ),
     ],
 )
-def test_parse_aci_version(string_table: List[List[str]], expected_section: List[ACINode]) -> None:
+def test_parse_aci_version(string_table: List[List[str]], expected_section: List[ACINodeVersion]) -> None:
     assert parse_aci_version(string_table) == expected_section
 
 
@@ -84,7 +84,7 @@ def test_parse_aci_version(string_table: List[List[str]], expected_section: List
         ),
         (
             [
-                ACINode(name="node-3", version="3.0(1k)"),
+                ACINodeVersion(name="node-3", version="3.0(1k)"),
             ],
             (
                 Result(state=State.OK, summary='Everyone seems to be running 3.0(1k)'),
@@ -92,8 +92,8 @@ def test_parse_aci_version(string_table: List[List[str]], expected_section: List
         ),
         (
             [
-                ACINode(name='node-2', version='4.2(5n)'),
-                ACINode(name='node-101', version='n9000-14.2(5n)'),
+                ACINodeVersion(name='node-2', version='4.2(5n)'),
+                ACINodeVersion(name='node-101', version='n9000-14.2(5n)'),
             ],
             (
                 Result(state=State.OK, summary='Everyone seems to be running 4.2(5n)'),
@@ -101,8 +101,8 @@ def test_parse_aci_version(string_table: List[List[str]], expected_section: List
         ),
         (
             [
-                ACINode(name='node-2', version='4.2(5n)'),
-                ACINode(name="node-3", version="3.0(1k)"),
+                ACINodeVersion(name='node-2', version='4.2(5n)'),
+                ACINodeVersion(name="node-3", version="3.0(1k)"),
             ],
             (
                 Result(state=State.WARN, summary='Multiple Versions detected: 3.0(1k), 4.2(5n)'),
@@ -110,5 +110,5 @@ def test_parse_aci_version(string_table: List[List[str]], expected_section: List
         ),
     ],
 )
-def test_check_aci_version(section: List[ACINode], expected_check_result: Tuple) -> None:
+def test_check_aci_version(section: List[ACINodeVersion], expected_check_result: Tuple) -> None:
     assert tuple(check_aci_version(section)) == expected_check_result

@@ -37,12 +37,12 @@ from .agent_based_api.v1 import (
 )
 
 
-class ACINode(NamedTuple):
+class ACINodeVersion(NamedTuple):
     name: str
     version: str
 
 
-def parse_aci_version(string_table) -> List[ACINode]:
+def parse_aci_version(string_table) -> List[ACINodeVersion]:
     """
     Example output:
         node-3 3.0(1k)
@@ -51,7 +51,7 @@ def parse_aci_version(string_table) -> List[ACINode]:
         node-2 4.2(5n)
         node-101 n9000-14.2(5n)
     """
-    return [ACINode(node_name, version) for node_name, version in string_table]
+    return [ACINodeVersion(node_name, version) for node_name, version in string_table]
 
 
 register.agent_section(
@@ -60,11 +60,11 @@ register.agent_section(
 )
 
 
-def discover_aci_version(section: List[ACINode]) -> DiscoveryResult:
+def discover_aci_version(section: List[ACINodeVersion]) -> DiscoveryResult:
     yield Service()
 
 
-def check_aci_version(section: List[ACINode]) -> CheckResult:
+def check_aci_version(section: List[ACINodeVersion]) -> CheckResult:
     versions = set()
 
     for node in section:
