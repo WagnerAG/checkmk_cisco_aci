@@ -34,7 +34,6 @@ from .agent_based_api.v1 import (
     Metric,
     Result,
     Service,
-    State,
 )
 from .aci_general import ACIHealthLevels, get_state_by_health_score
 
