@@ -29,11 +29,11 @@ import argparse
 
 requests.packages.urllib3.disable_warnings()
 
-MAX_RETRIES = 3
-SLEEP_SECONDS = 3
+MAX_RETRIES: str = 3
+SLEEP_SECONDS: str = 3
 
-VERSION=0.6
-NAME="aci-ds"
+VERSION: float = 0.6
+NAME: str = "aci-ds"
 
 
 def get_args():
@@ -151,7 +151,6 @@ def get_versions(session, url):
     return running
 
 
-
 def print_agent_output(url, session):
     print('<<<check_mk>>>')
     print(f'Version: {NAME}-{VERSION}')
@@ -176,7 +175,7 @@ def print_agent_output(url, session):
 def handle_error(current_host: int, num_hosts: int, desc: str, exit_code: int, error: Optional[Exception]):
     if (current_host >= num_hosts):
         print(desc)
-        if error :
+        if error:
             print(error)
         exit(exit_code)
 
@@ -195,9 +194,9 @@ def main():
 
         except requests.HTTPError as e:
             handle_error(current_host=i, num_hosts=num_hosts, desc=f'Could not login to ACI, Error: {e.message}', exit_code=3)
-            
+
         except Exception as e:
-            handle_error(current_host=i, num_hosts=num_hosts, desc=f'Error occurred!', exit_code=3, error=e)
+            handle_error(current_host=i, num_hosts=num_hosts, desc='Error occurred!', exit_code=3, error=e)
 
     print_agent_output(url, session)
 
