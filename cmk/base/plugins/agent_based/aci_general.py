@@ -22,7 +22,10 @@ Version:    0.6
 
 """
 
+from __future__ import annotations
 from enum import Enum, unique
+from .agent_based_api.v1 import State
+
 
 aci_health_default_values = (95, 85)
 
@@ -33,37 +36,10 @@ class ACIHealthLevels(Enum):
     CRIT: int = 85
 
 
-def inventory_aci_node(info):
-    # controller 1 APIC1 in-service  FCH1835V2FM APIC-SERVER-M1 APIC-SERVER-M1
-    for line in info:
-        nnid = line[1]
-        yield nnid, "aci_health_default_values"
+def get_state_by_health_score(health: int) -> State:
+    if health < ACIHealthLevels.CRIT.value:
+        return State.CRIT
+    elif health < ACIHealthLevels.WARN.value:
+        return State.WARN
 
-
-def check_aci_switch(item, params, info):
-    # spine 201 ACI-SPINE-201 in-service 100 SAL18391DWK N9K-C9336PQ Nexus9000 C9336PQ Chassis
-
-    state = 3
-    msg = 'Sorry - item not found'
-    perfdata = []
-
-    for line in info:
-        if line[1] == item:
-            break
-    else:
-        return state, msg
-
-    check, nnid, name, status, health, serial, model = line[:7]
-    state = 0
-
-    warn, crit = params
-    if int(health) < crit:
-        state = 2
-        msg += "(!!)"
-    elif int(health) < warn:
-        msg += "(!)"
-        state = 1
-
-    msg = '{0} is {1}, Health:{2}, Model: {3}, Serial {4}'.format(name, status, health, model, serial)
-
-    return state, msg, [("health", health, warn, crit, None, 100)]
+    return State.OK

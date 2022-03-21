@@ -36,7 +36,7 @@ from .agent_based_api.v1 import (
     Service,
     State,
 )
-from .aci_general import ACIHealthLevels
+from .aci_general import ACIHealthLevels, get_state_by_health_score
 
 
 class ACIHealthValues(NamedTuple):
@@ -78,15 +78,8 @@ def discover_aci_health(section: ACIHealthValues) -> DiscoveryResult:
 
 
 def check_aci_health(section: ACIHealthValues) -> CheckResult:
-    state: State = State.OK
-
-    if section.health < ACIHealthLevels.CRIT.value:
-        state = State.CRIT
-    elif section.health < ACIHealthLevels.WARN.value:
-        state = State.WARN
-
     yield Result(
-        state=state,
+        state=get_state_by_health_score(section.health),
         summary=f"Fabric Health Score: {section.health}, "
                 f"Fabric-wide Faults (crit/warn/maj/min): "
                 f"{section.fcrit}/{section.fwarn}/{section.fmaj}/{section.fmin}")
