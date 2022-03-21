@@ -67,7 +67,7 @@ def parse_aci_node(string_table) -> List[ACINode]:
 
 def discover_aci_node(section: List[ACINode]) -> DiscoveryResult:
     for node in section:
-        yield Service(node.nnid)
+        yield Service(item=node.nnid)
 
 
 def check_aci_node(item: str, section: List[ACINode]) -> CheckResult:
