@@ -90,7 +90,7 @@ def check_aci_health(section: ACIHealthValues) -> CheckResult:
         summary=f"Fabric Health Score: {section.health}, "
                 f"Fabric-wide Faults (crit/warn/maj/min): "
                 f"{section.fcrit}/{section.fwarn}/{section.fmaj}/{section.fmin}")
-    
+
     yield Metric("health", section.health, levels=(ACIHealthLevels.WARN, ACIHealthLevels.CRIT),
                  boundaries=(0, 100))
     yield Metric("fcrit", section.fcrit)

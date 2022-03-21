@@ -49,11 +49,11 @@ def test_parse_aci_health(string_table: List[List[str]], expected_section: ACIHe
     ],
 )
 def test_invalid_parse_aci_health(string_table: List[List[str]]) -> None:
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(ValueError) as exec_info:
         parse_aci_health(string_table)
 
-    assert isinstance(err.type(), ValueError)
-    assert err.value == 'section must <<<aci_health>>> be a single line but is 2 lines'
+    assert isinstance(exec_info.type(), ValueError)
+    assert str(exec_info.value) == 'section must <<<aci_health>>> be a single line but is 2 lines'
 
 
 # @pytest.mark.parametrize(
