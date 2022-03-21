@@ -80,9 +80,9 @@ def discover_aci_health(section: ACIHealthValues) -> DiscoveryResult:
 def check_aci_health(section: ACIHealthValues) -> CheckResult:
     state: State = State.OK
 
-    if section.health < ACIHealthLevels.CRIT:
+    if section.health < ACIHealthLevels.CRIT.value:
         state = State.CRIT
-    elif section.health < ACIHealthLevels.WARN:
+    elif section.health < ACIHealthLevels.WARN.value:
         state = State.WARN
 
     yield Result(
@@ -91,17 +91,18 @@ def check_aci_health(section: ACIHealthValues) -> CheckResult:
                 f"Fabric-wide Faults (crit/warn/maj/min): "
                 f"{section.fcrit}/{section.fwarn}/{section.fmaj}/{section.fmin}")
 
-    yield Metric("health", section.health, levels=(ACIHealthLevels.WARN, ACIHealthLevels.CRIT),
+    yield Metric("health", section.health,
+                 levels=(ACIHealthLevels.WARN.value, ACIHealthLevels.CRIT.value),
                  boundaries=(0, 100))
     yield Metric("fcrit", section.fcrit)
     yield Metric("fwarn", section.fwarn)
     yield Metric("fmaj", section.fmaj)
     yield Metric("fmin", section.fmin)
 
-# check_info["aci_health"] = {
-#     'check_function': check_aci_health,
-#     'inventory_function': inventory_aci_health,
-#     'service_description': 'Fabric Health Score',
-#     'has_perfdata': True,
-#     "includes": ["aci.include"],
-# }
+
+register.check_plugin(
+    name='aci_health',
+    service_name='Fabric Health Score',
+    discovery_function=discover_aci_health,
+    check_function=check_aci_health,
+)
