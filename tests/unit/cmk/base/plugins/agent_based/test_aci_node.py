@@ -24,11 +24,19 @@ from cmk.base.plugins.agent_based.aci_node import (
 )
 
 
+ACI_TEST_NODES: List[ACINode] = [
+    ACINode(nnid='101', name='spine101', status='in-service', health=84, serial='FEO33101F5G', model='N9K-C9336PQ'),
+    ACINode(nnid='201', name='spine201', status='in-service', health=95, serial='FEO33101F5F', model='N9K-C9336PQ'),
+    ACINode(nnid='202', name='spine202', status='in-service', health=94, serial='FEO33101F5E', model='N9K-C9336PQ'),
+    ACINode(nnid='203', name='spine203', status='in-service', health=85, serial='FEO33101F5B', model='N9K-C9336PQ'),
+]
+
+
 @pytest.mark.parametrize(
     "string_table, expected_section",
     [
+        # ACI spine
         (
-            # ACI spine
             [
                 ['spine', '201', 'spine201', 'in-service', '95', 'FEO33101F5G', 'N9K-C9336PQ',
                  'Nexus9000', '1-Slot', 'Spine Chassis'],
@@ -38,18 +46,34 @@ from cmk.base.plugins.agent_based.aci_node import (
                         serial='FEO33101F5G', model='N9K-C9336PQ'),
             ],
         ),
+        (
+            [
+                ['spine', '101', 'spine101', 'in-service', '84', 'FEO33101F5G', 'N9K-C9336PQ',
+                 'Nexus9000', '1-Slot', 'Spine Chassis'],
+                ['spine', '201', 'spine201', 'in-service', '95', 'FEO33101F5F', 'N9K-C9336PQ',
+                 'Nexus9000', '1-Slot', 'Spine Chassis'],
+                ['spine', '202', 'spine202', 'in-service', '94', 'FEO33101F5E', 'N9K-C9336PQ',
+                 'Nexus9000', '1-Slot', 'Spine Chassis'],
+                ['spine', '203', 'spine203', 'in-service', '85', 'FEO33101F5B', 'N9K-C9336PQ',
+                 'Nexus9000', '1-Slot', 'Spine Chassis'],
+            ],
+            ACI_TEST_NODES,
+        ),
+        # ACI leaf
+        (
+            [
+                ['leaf', '311', 'leaf311', 'in-service', '100', 'FCO140610VJ', 'N9K-C93180YC-EX',
+                    'Nexus', 'C93180YC-EX', 'Chassis'],
+            ],
+            [
+                ACINode(nnid='311', name='leaf311', status='in-service', health=100,
+                        serial='FCO140610VJ', model='N9K-C93180YC-EX'),
+            ],
+        ),
     ],
 )
 def test_parse_aci_node(string_table: List[List[str]], expected_section: List[ACINode]) -> None:
     assert parse_aci_node(string_table) == expected_section
-
-
-ACI_TEST_NODES: List[ACINode] = [
-    ACINode(nnid='101', name='spine101', status='in-service', health=84, serial='FEO33101F5G', model='N9K-C9336PQ'),
-    ACINode(nnid='201', name='spine201', status='in-service', health=95, serial='FEO33101F5F', model='N9K-C9336PQ'),
-    ACINode(nnid='202', name='spine202', status='in-service', health=94, serial='FEO33101F5E', model='N9K-C9336PQ'),
-    ACINode(nnid='203', name='spine203', status='in-service', health=85, serial='FEO33101F5B', model='N9K-C9336PQ'),
-]
 
 
 @pytest.mark.parametrize(
