@@ -1,0 +1,21 @@
+{
+    'author': u'Roger Ellenberger',
+    'description': u'Cisco ACI monitoring agent for cmk2.0. Original version by Samuel Zehnder <zehnder@netcloud.ch>',
+    'download_url': '',
+    'files': {
+        'agent_based': ['aci_controller.py', 'aci_general.py', 'aci_health.py', 'aci_leaf.py', 'aci_node.py', 'aci_spine.py', 'aci_version.py'],
+        'agents': ['aci-ds.py'],
+        'checkman': [],
+        'checks': [],
+        'doc': [],
+        'inventory': [],
+        'notifications': [],
+        'pnp-templates': [],
+        'web': []
+    },
+    'name': 'checkmk_cisco_aci',
+    'title': u'Special agent for Cisco ACI',
+    'version': '0.6',
+    'version.min_required': '2.0.0',
+    'version.packaged': '2.0.0'
+}
