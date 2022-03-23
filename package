@@ -13,7 +13,7 @@
         'pnp-templates': [],
         'web': []
     },
-    'name': 'checkmk_cisco_aci',
+    'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
     'version': '0.6',
     'version.min_required': '2.0.0',
