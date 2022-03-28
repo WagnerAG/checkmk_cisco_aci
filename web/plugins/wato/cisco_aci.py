@@ -22,22 +22,46 @@ Version:    0.6
 """
 
 from cmk.gui.i18n import _
+from cmk.gui.plugins.wato.utils import (
+    HostRulespec,
+    IndividualOrStoredPassword,
+    rulespec_registry,
+)
 from cmk.gui.valuespec import (
     Dictionary,
-    Password,
-    TextAscii,
+    TextInput,
+    ListOfStrings,
 )
 from cmk.gui.plugins.wato.datasource_programs import RulespecGroupDatasourceProgramsHardware
-from cmk.gui.plugins.wato import rulespec_registry, HostRulespec
 
 
 def _valuespec_special_agents_cisco_aci():
     return Dictionary(
         title=_("Cisco ACI"),
         elements=[
-            ('host', TextAscii(title=_('APIC IP, multiple IPs (Ctrls) accepted'))),
-            ('user', TextAscii(title=_('ACI Username'))),
-            ('password', Password(title=_('Password')))
+            (
+                'host',
+                ListOfStrings(
+                    title=_('APIC IP address(es)'),
+                    orientation="vertical",
+                    help=_('multiple Controller IPs are accepted'),
+                    allow_empty=False,
+                )
+            ),
+            (
+                'user',
+                TextInput(
+                    title=_('ACI Username'),
+                    allow_empty=False,
+                )
+            ),
+            (
+                'password',
+                IndividualOrStoredPassword(
+                    title=_('Password'),
+                    allow_empty=False,
+                )
+            )
         ],
         optional_keys=[],
     )

@@ -219,7 +219,8 @@ def output_header():
 
 def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
     parser = create_default_argument_parser(description=__doc__)
-    parser.add_argument('-H', '--host', type=str, required=True, metavar="ADDRESS", nargs='+', help='APIC IP, multiple IPs (Ctrls) accepted')
+    parser.add_argument('-H', '--host', type=str, required=True, metavar="HOST", nargs='+',
+                        help='APIC IP, multiple IPs (Ctrls) accepted')
     parser.add_argument('-u', '--user', type=str, required=True, metavar="USER", help='ACI Username')
     parser.add_argument('-p', '--password', type=str, required=True, metavar="PASSWORD", help='ACI Password')
 
