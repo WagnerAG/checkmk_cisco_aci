@@ -13,7 +13,7 @@
 # Boston, MA 02110-1301 USA.
 
 """
-Check_MK Checks to use with aci-ds Datasource
+Check_MK Checks to use with agent_cisco_aci Datasource
 Place into local check-mk checks directory, e.g ~/local/share/check_mk/checks in OMD
 
 Authors:    Samuel Zehnder, zehnder@netcloud.ch
