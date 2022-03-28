@@ -137,9 +137,9 @@ def get_versions(session, url):
 
 def handle_error(current_host: int, num_hosts: int, desc: str, exit_code: int, error: Optional[Exception]):
     if (current_host >= num_hosts):
-        print(desc)
+        LOGGING.error(desc)
         if error:
-            print(error)
+            LOGGING.error(error)
         exit(exit_code)
 
 
