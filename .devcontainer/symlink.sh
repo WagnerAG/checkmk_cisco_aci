@@ -8,6 +8,9 @@ done;
 rm -rfv $OMD_ROOT/local/lib/check_mk/notification_plugins
 ln -sv $WORKSPACE/notification_plugins $OMD_ROOT/local/lib/check_mk/notification_plugins
 
+rm -rfv $OMD_ROOT/local/lib/check_mk/special_agents
+ln -sv $WORKSPACE/special_agents $OMD_ROOT/local/lib/check_mk/special_agents
+
 rm -rfv $OMD_ROOT/local/lib/check_mk/base/plugins/agent_based
 ln -sv $WORKSPACE/agent_based $OMD_ROOT/local/lib/check_mk/base/plugins/agent_based
 

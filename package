@@ -4,14 +4,14 @@
     'download_url': '',
     'files': {
         'agent_based': ['aci_controller.py', 'aci_general.py', 'aci_health.py', 'aci_leaf.py', 'aci_node.py', 'aci_spine.py', 'aci_version.py'],
-        'agents': ['aci-ds.py'],
+        'agents': ['special/cisco_aci.py'],
         'checkman': [],
         'checks': [],
         'doc': [],
         'inventory': [],
         'notifications': [],
         'pnp-templates': [],
-        'web': []
+        'web': ['plugins/wato/cisco_aci.py']
     },
     'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
