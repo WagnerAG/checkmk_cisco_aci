@@ -33,7 +33,7 @@ from cmk.gui.plugins.wato import rulespec_registry, HostRulespec
 
 def _valuespec_special_agents_cisco_aci():
     return Dictionary(
-        title=_("Cisco ACI checks"),
+        title=_("Cisco ACI"),
         elements=[
             ('host', TextAscii(title=_('APIC IP, multiple IPs (Ctrls) accepted'))),
             ('user', TextAscii(title=_('ACI Username'))),
