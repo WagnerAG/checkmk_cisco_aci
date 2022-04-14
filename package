@@ -6,7 +6,7 @@
         'agent_based': ['aci_controller.py', 'aci_general.py', 'aci_health.py', 'aci_leaf.py', 'aci_node.py', 'aci_spine.py', 'aci_version.py'],
         'agents': ['special/agent_cisco_aci'],
         'checkman': [],
-        'checks': ['agent_cisco_aci'],
+        'checks': ['cisco_aci'],
         'doc': [],
         'inventory': [],
         'notifications': [],
@@ -15,7 +15,7 @@
     },
     'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
-    'version': '0.6',
+    'version': '0.6.2',
     'version.min_required': '2.0.0',
-    'version.packaged': '2.0.0'
+    'version.packaged': '2.0.0p12'
 }

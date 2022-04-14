@@ -27,9 +27,6 @@ from enum import Enum, unique
 from .agent_based_api.v1 import State
 
 
-aci_health_default_values = (95, 85)
-
-
 @unique
 class ACIHealthLevels(Enum):
     WARN: int = 95

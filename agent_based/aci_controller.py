@@ -51,9 +51,9 @@ class ACIController(NamedTuple):
 def parse_aci_controller(string_table) -> List[ACIController]:
     """
     Exmple output:
-        controller 1 APIC1 in-service  FCH1835V2FM APIC-SERVER-M1 APIC-SERVER-M1
+        controller 1 APIC1 in-service FCH1835V2FM APIC-SERVER-M1 APIC-SERVER-M1
 
-        controller 1 ACI01 in-service  FCH1935V1Z8 APIC-SERVER-M2 APIC-SERVER-M2
+        controller 1 ACI01 in-service FCH1935V1Z8 APIC-SERVER-M2 APIC-SERVER-M2
     """
     return [
         ACIController(controller_id, name, status, serial, model, descr)

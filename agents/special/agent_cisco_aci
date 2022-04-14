@@ -15,13 +15,14 @@
 """
 Nagios CMK Datasource Programm to check Cisco ACI
 
-Authors:    Samuel Zehnder, zehnder@netcloud.ch
-            Roger Ellenberger, roger.ellenberger@wagner.ch
+Authors:    Samuel Zehnder <zehnder@netcloud.ch>
+            Roger Ellenberger <roger.ellenberger@wagner.ch>
 Version:    0.6
 
 """
 
-from typing import Dict, Optional, Sequence
+from typing import Dict, Optional, Sequence, Tuple
+from dataclasses import dataclass
 import logging
 
 import time
@@ -40,7 +41,31 @@ MAX_RETRIES: str = 3
 SLEEP_SECONDS: str = 3
 
 VERSION: float = 0.6
-NAME: str = "aci-ds"
+NAME: str = "agent_cisco_aci"
+
+
+@dataclass
+class AciNode:
+    name: str
+    role: str
+    state: str
+    serial: str
+    node_id: str
+    health: str = "-1"
+    model: str = "unknown"
+    descr: str = ""
+
+    def build_node_output(self) -> Tuple:
+        if self.role == 'controller':
+            node_info = (self.role, self.node_id, self.name, self.state, self.serial,
+                         self.model, self.descr)
+        else:
+            node_info = (self.role, self.node_id, self.name, self.state, self.health,
+                         self.serial, self.model, self.descr)
+
+        node_info = tuple(map(str.strip, node_info))  # sanitize strings
+
+        return node_info
 
 
 def _login(url, user, pwd) -> requests.Session:
@@ -85,23 +110,22 @@ def get_nodes(session, url) -> Dict:
     nodelist = dict(spine=[], leaf=[], controller=[])
 
     for node in nodes:
-        health = ""
-        model = "unknown"
-        descr = ""
-        name = node['topSystem']['attributes']['name']
-        role = node['topSystem']['attributes']['role']
-        state = node['topSystem']['attributes']['state']
-        serial = node['topSystem']['attributes']['serial']
-        node_id = node['topSystem']['attributes']['id']
+        aci_node = AciNode(
+            name = node['topSystem']['attributes']['name'],
+            role = node['topSystem']['attributes']['role'],
+            state = node['topSystem']['attributes']['state'],
+            serial = node['topSystem']['attributes']['serial'],
+            node_id = node['topSystem']['attributes']['id'],
+        )
 
         for child in node['topSystem']['children']:
             if 'healthInst' in child:
-                health = child['healthInst']['attributes']['cur']
+                aci_node.health = child['healthInst']['attributes']['cur']
             if 'eqptCh' in child:
-                descr = child['eqptCh']['attributes']['descr']
-                model = child['eqptCh']['attributes']['model']
+                aci_node.descr = child['eqptCh']['attributes']['descr']
+                aci_node.model = child['eqptCh']['attributes']['model']
 
-        nodelist[role].append((role, node_id, name, state, health, serial, model, descr))
+        nodelist[aci_node.role].append(aci_node.build_node_output())
 
     return nodelist
 
@@ -191,7 +215,7 @@ def output_aci_nodes(url, session):
     all_nodes = get_nodes(session, url)
 
     for node_type, nodes in all_nodes.items():
-        with SectionWriter(f'aci_{node_type}') as writer:
+        with SectionWriter(f'aci_{node_type}', separator=' ') as writer:
             for node in nodes:
                 writer.append(' '.join(node))
 
@@ -199,20 +223,20 @@ def output_aci_nodes(url, session):
 def output_aci_health(url, session):
     health_score = get_aci_health(session, url)
 
-    with SectionWriter('aci_health') as writer:
+    with SectionWriter('aci_health', separator=' ') as writer:
         writer.append(f'health {health_score} {" ".join(get_faults(session, url))}')
 
 
 def output_aci_version(url, session):
     versions = get_versions(session, url)
 
-    with SectionWriter('aci_version') as writer:
+    with SectionWriter('aci_version', separator=' ') as writer:
         for node, version in versions:
-            writer.append(f'{node}, {version}')
+            writer.append(f'{node} {version}')
 
 
 def output_header():
-    with SectionWriter('check_mk') as writer:
+    with SectionWriter('check_mk', separator=' ') as writer:
         writer.append(f'Version: {NAME}-{VERSION}')
         writer.append('AgentOS: Cisco ACI')
 
