@@ -27,6 +27,7 @@ import logging
 
 import time
 import json
+from urllib.parse import urljoin
 import requests
 
 from cmk.special_agents.utils.agent_common import SectionWriter, special_agent_main
@@ -159,6 +160,13 @@ def get_versions(session, url):
     return running
 
 
+def get_json_section(session, base_url: str, path: str) -> Dict:
+    response = session.get(urljoin(base_url, path))
+    response.raise_for_status()
+
+    return response.json()['imdata']
+
+
 def handle_error(current_host: int, num_hosts: int, desc: str, exit_code: int, error: Optional[Exception]):
     if (current_host >= num_hosts):
         LOGGING.error(desc)
@@ -208,6 +216,11 @@ def agent_cisco_aci_main(args: Args) -> None:
     LOGGING.info("fetch and write node info..")
     output_aci_nodes(url, session)
 
+    api_paths: Dict = {
+        'bgp_peer_entry': 'bgpPeerEntry',
+    }
+    output_aci_class_attributes(url, session, api_paths)
+
     LOGGING.info("all done. cheers.")
 
 
@@ -239,6 +252,19 @@ def output_header():
     with SectionWriter('check_mk', separator=' ') as writer:
         writer.append(f'Version: {NAME}-{VERSION}')
         writer.append('AgentOS: Cisco ACI')
+
+
+def output_aci_class_attributes(url, session, aci_classes: Dict):
+    for title, aci_class in aci_classes.items():
+        LOGGING.info(f'fetch and write {title} section')
+        result = get_json_section(session, base_url=url, path=f'class/{aci_class}.json')
+
+        with SectionWriter(f'aci_{title}', separator=' ') as writer:
+            if isinstance(result, list):
+                for line in result:
+                    writer.append(line.get(aci_class, {}).get('attributes'))
+            else:
+                writer.append(result)
 
 
 def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
