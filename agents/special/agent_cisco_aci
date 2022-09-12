@@ -240,7 +240,7 @@ def agent_cisco_aci_main(args: Args) -> None:
     #    fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
     #)
 
-    output_iface_stats(apic)
+    output_iface_stats(apic, args.only_iface_admin_up)
 
     LOGGING.info("all done. cheers.")
 
@@ -369,15 +369,19 @@ class InterfaceDetails(NamedTuple):
         ])
 
 
-def get_phys_iface(apic: Apic):
-    raw_data = __collect_data(apic)
+def get_phys_iface(apic: Apic, only_iface_admin_up: bool):
+    raw_data = __collect_data(apic, only_iface_admin_up)
     preprocessed_data = __merge_data(raw_data)
 
     return preprocessed_data
 
 
-def __collect_data(apic: Apic):
+def __collect_data(apic: Apic, only_iface_admin_up: bool):
     phys_iface: List = apic.get_data_from_class(aci_class='l1PhysIf')
+
+    if only_iface_admin_up:
+        phys_iface = [iface for iface in phys_iface if (iface['adminSt'] == 'up')]
+
     ether_stats: List = apic.get_data_from_class(aci_class='rmonEtherStats')
     dot3_stats: List = apic.get_data_from_class(aci_class='rmonDot3Stats')
 
@@ -399,8 +403,8 @@ def __merge_data(data: PhysicalInterfaces):
     return merged_data
 
 
-def output_iface_stats(apic: Apic):
-    iface_stats = get_phys_iface(apic)
+def output_iface_stats(apic: Apic, only_iface_admin_up: bool):
+    iface_stats = get_phys_iface(apic, only_iface_admin_up)
 
     print(InterfaceDetails.get_header())
     for line in iface_stats:
@@ -413,6 +417,8 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
                         help='APIC IP, multiple IPs (Ctrls) accepted')
     parser.add_argument('-u', '--user', type=str, required=True, metavar="USER", help='ACI Username')
     parser.add_argument('-p', '--password', type=str, required=True, metavar="PASSWORD", help='ACI Password')
+    parser.add_argument('--only-iface-admin-up', action="store_true", required=False, default=True,
+                        help='Only monitor interfaces in admin state "up"')
 
     return parser.parse_args(argv)
 
