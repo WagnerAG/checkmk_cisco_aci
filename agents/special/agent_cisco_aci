@@ -21,12 +21,13 @@ Version:    0.6
 
 """
 
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 from dataclasses import dataclass
 import logging
 
 import time
 import json
+from urllib.parse import urljoin
 import requests
 
 from cmk.special_agents.utils.agent_common import SectionWriter, special_agent_main
@@ -68,36 +69,79 @@ class AciNode:
         return node_info
 
 
-def _login(url, user, pwd) -> requests.Session:
-    """APIC Login"""
+class Apic:
 
-    creds = {"aaaUser": {"attributes": {"name": user, "pwd": pwd}}}
+    def __init__(self, args) -> None:
+        url, session = self._log_into_aci(args)
+        self.url = url
+        self.session = session
 
-    counter = 1
-    s = requests.Session()
-    response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.000)
+    def _log_into_aci(self, args):
+        num_hosts = len(args.host)
 
-    while response.status_code == requests.codes.unauthorized:
-        if counter > MAX_RETRIES:
-            raise requests.HTTPError(json.loads(response.text)["imdata"][0]["error"]["attributes"]["text"])
-        time.sleep(SLEEP_SECONDS)
+        for i, host in enumerate(args.host, start=1):
+            url = f'https://{host}/api/'
+            try:
+                session = self._login(url, args.user, args.password)
+                break
+            except requests.exceptions.ConnectionError as e:
+                self._handle_error(current_host=i, num_hosts=num_hosts,
+                                   desc='Could not reach APIC (!!)', error=e, exit_code=2)
+
+            except requests.HTTPError as e:
+                self._handle_error(current_host=i, num_hosts=num_hosts,
+                                   desc=f'Could not login to ACI, Error: {e.message}', exit_code=3)
+
+            except Exception as e:
+                self._handle_error(current_host=i, num_hosts=num_hosts,
+                                   desc='Error occurred!', exit_code=3, error=e)
+
+        return url, session
+
+    @staticmethod
+    def _login(url, user, pwd) -> requests.Session:
+        """APIC Login"""
+
+        creds = {"aaaUser": {"attributes": {"name": user, "pwd": pwd}}}
+
+        counter = 1
+        s = requests.Session()
         response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.000)
-        counter += 1
 
-    response.raise_for_status()
+        while response.status_code == requests.codes.unauthorized:
+            if counter > MAX_RETRIES:
+                raise requests.HTTPError(json.loads(response.text)["imdata"][0]["error"]["attributes"]["text"])
+            time.sleep(SLEEP_SECONDS)
+            response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.000)
+            counter += 1
 
-    return s
+        response.raise_for_status()
+
+        return s
+
+    @staticmethod
+    def _handle_error(current_host: int, num_hosts: int, desc: str, exit_code: int, error: Optional[Exception]):
+        if (current_host >= num_hosts):
+            LOGGING.error(desc)
+            if error:
+                LOGGING.error(error)
+            exit(exit_code)
+
+    def get_imdata(self, endpoint: str) -> List:
+        response = self.session.get(urljoin(self.url, endpoint))
+        response.raise_for_status()
+        return response.json()['imdata']
+
+    def get_data_from_class(self, aci_class: str) -> List:
+        result = self.get_imdata(endpoint=f'class/{aci_class}.json')
+        return [item[aci_class]['attributes'] for item in result]
 
 
-def get_aci_health(session, url):
+def get_aci_health(apic: Apic):
     """Get Fabric Health Score"""
 
-    url += "node/mo/topology/health.json"
-    response = session.get(url)
-    health_data = json.loads(response.text)
-    response.raise_for_status()
-
-    health_score = health_data["imdata"][0]["fabricHealthTotal"]["attributes"]["cur"]
+    imdata = apic.get_imdata('node/mo/topology/health.json')
+    health_score = imdata[0]["fabricHealthTotal"]["attributes"]["cur"]
 
     return int(health_score)
 
@@ -159,42 +203,19 @@ def get_versions(session, url):
     return running
 
 
-def handle_error(current_host: int, num_hosts: int, desc: str, exit_code: int, error: Optional[Exception]):
-    if (current_host >= num_hosts):
-        LOGGING.error(desc)
-        if error:
-            LOGGING.error(error)
-        exit(exit_code)
+def get_json_section(session, base_url: str, path: str) -> Dict:
+    response = session.get(urljoin(base_url, path))
+    response.raise_for_status()
 
-
-def log_into_aci(args):
-    num_hosts = len(args.host)
-
-    for i, host in enumerate(args.host, start=1):
-        url = f'https://{host}/api/'
-        try:
-            session = _login(url, args.user, args.password)
-            break
-        except requests.exceptions.ConnectionError as e:
-            handle_error(current_host=i, num_hosts=num_hosts,
-                         desc='Could not reach APIC (!!)', error=e, exit_code=2)
-
-        except requests.HTTPError as e:
-            handle_error(current_host=i, num_hosts=num_hosts,
-                         desc=f'Could not login to ACI, Error: {e.message}', exit_code=3)
-
-        except Exception as e:
-            handle_error(current_host=i, num_hosts=num_hosts,
-                         desc='Error occurred!', exit_code=3, error=e)
-
-    return url, session
+    return response.json()['imdata']
 
 
 def agent_cisco_aci_main(args: Args) -> None:
     """Establish a connection to ACI controller and get version, health, and node information"""
 
     LOGGING.info("setup HTTPS connection..")
-    url, session = log_into_aci(args)
+    apic = Apic(args)
+    url, session = apic.url, apic.session
 
     LOGGING.info("write agent header..")
     output_header()
@@ -203,10 +224,15 @@ def agent_cisco_aci_main(args: Args) -> None:
     output_aci_version(url, session)
 
     LOGGING.info("fetch and write health status..")
-    output_aci_health(url, session)
+    output_aci_health(apic)
 
     LOGGING.info("fetch and write node info..")
     output_aci_nodes(url, session)
+
+    output_aci_class_attributes(
+        apic, title='bgp_peer_entry', aci_class='bgpPeerEntry',
+        fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
+    )
 
     LOGGING.info("all done. cheers.")
 
@@ -220,11 +246,11 @@ def output_aci_nodes(url, session):
                 writer.append(' '.join(node))
 
 
-def output_aci_health(url, session):
-    health_score = get_aci_health(session, url)
+def output_aci_health(apic):
+    health_score = get_aci_health(apic)
 
     with SectionWriter('aci_health', separator=' ') as writer:
-        writer.append(f'health {health_score} {" ".join(get_faults(session, url))}')
+        writer.append(f'health {health_score} {" ".join(get_faults(apic.session, apic.url))}')
 
 
 def output_aci_version(url, session):
@@ -241,6 +267,24 @@ def output_header():
         writer.append('AgentOS: Cisco ACI')
 
 
+def output_aci_class_attributes(apic: Apic, title: str, aci_class: str, fields: Tuple):
+    LOGGING.info(f'fetch and write {title} section')
+    results = apic.get_data_from_class(aci_class)
+
+    with SectionWriter(f'aci_{title}', separator=' ') as writer:
+        writer.append('#' + (' '.join(fields)))
+        if isinstance(results, list):
+            for result_obj in results:
+                writer.append(prepare_dict_for_writer(result_obj, fields))
+        else:
+            writer.append(results)
+
+
+def prepare_dict_for_writer(result_obj: Dict, fields: Tuple) -> str:
+    selected_data = [str(result_obj.get(field, 'n/a')) for field in fields]
+    return ' '.join(selected_data)
+
+
 def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
     parser = create_default_argument_parser(description=__doc__)
     parser.add_argument('-H', '--host', type=str, required=True, metavar="HOST", nargs='+',
@@ -251,10 +295,6 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
     return parser.parse_args(argv)
 
 
-def main():
+if __name__ == "__main__":
     """Main entry point to be used"""
     special_agent_main(parse_arguments, agent_cisco_aci_main)
-
-
-if __name__ == "__main__":
-    main()
