@@ -17,11 +17,11 @@ Nagios CMK Datasource Programm to check Cisco ACI
 
 Authors:    Samuel Zehnder <zehnder@netcloud.ch>
             Roger Ellenberger <roger.ellenberger@wagner.ch>
-Version:    0.6
+Version:    0.7
 
 """
 
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Set, Optional, Sequence, Tuple, NamedTuple
 from dataclasses import dataclass
 import logging
 
@@ -29,6 +29,7 @@ import time
 import json
 from urllib.parse import urljoin
 import requests
+from os.path import join
 
 from cmk.special_agents.utils.agent_common import SectionWriter, special_agent_main
 from cmk.special_agents.utils.argument_parsing import Args, create_default_argument_parser
@@ -41,7 +42,7 @@ requests.packages.urllib3.disable_warnings()
 MAX_RETRIES: str = 3
 SLEEP_SECONDS: str = 3
 
-VERSION: float = 0.6
+VERSION: float = 0.7
 NAME: str = "agent_cisco_aci"
 
 
@@ -136,6 +137,11 @@ class Apic:
         result = self.get_imdata(endpoint=f'class/{aci_class}.json')
         return [item[aci_class]['attributes'] for item in result]
 
+    def get_interface_details(self, dn: str):
+        response = self.session.get(urljoin(self.url, f'node/mo/{dn}/phys.json'))
+        response.raise_for_status()
+        return response.json()['imdata'][0]['ethpmPhysIf']['attributes']
+
 
 def get_aci_health(apic: Apic):
     """Get Fabric Health Score"""
@@ -229,10 +235,12 @@ def agent_cisco_aci_main(args: Args) -> None:
     LOGGING.info("fetch and write node info..")
     output_aci_nodes(url, session)
 
-    output_aci_class_attributes(
-        apic, title='bgp_peer_entry', aci_class='bgpPeerEntry',
-        fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
-    )
+    #output_aci_class_attributes(
+    #    apic, title='bgp_peer_entry', aci_class='bgpPeerEntry',
+    #    fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
+    #)
+
+    output_iface_stats(apic)
 
     LOGGING.info("all done. cheers.")
 
@@ -283,6 +291,120 @@ def output_aci_class_attributes(apic: Apic, title: str, aci_class: str, fields: 
 def prepare_dict_for_writer(result_obj: Dict, fields: Tuple) -> str:
     selected_data = [str(result_obj.get(field, 'n/a')) for field in fields]
     return ' '.join(selected_data)
+
+
+def filter_stats(stats: List, phys_iface_dn: Set):
+    return {stats['dn']: stats for stats in stats if stats['dn'] in phys_iface_dn}
+
+
+class PhysicalInterfaces(NamedTuple):
+    phys_iface: List
+    ether_stats_filtered: Dict
+    dot3_stats_filtered: Dict
+    phys_iface_details: Dict
+
+    @staticmethod
+    def _build_dn(dn: str, aci_class: str) -> str:
+        return join(dn, aci_class)
+
+    def get_ether_stats(self, dn: str) -> Dict:
+        dn = self._build_dn(dn, 'dbgEtherStats')
+        return self.ether_stats_filtered.get(dn, {})
+
+    def get_dot3_stats(self, dn: str) -> Dict:
+        dn = self._build_dn(dn, 'dbgDot3Stats')
+        return self.dot3_stats_filtered.get(dn, {})
+
+    def get_phys_iface(self, dn: str) -> Dict:
+        dn = self._build_dn(dn, 'phys')
+        return self.phys_iface_details.get(dn, {})
+
+
+class InterfaceDetails(NamedTuple):
+    dn: str
+    id: str
+    admin_state: str
+    layer: str
+    crc_errors: str
+    fcs_errors: str
+    op_state: str
+    op_speed: str
+
+    def get_interface_details(interface: Dict, data: PhysicalInterfaces):
+        iface_dn: str = interface['dn']
+        return InterfaceDetails(
+            dn=iface_dn,
+            id=interface['id'],
+            admin_state=interface['adminSt'],
+            layer=interface['layer'],
+            crc_errors=data.get_ether_stats(iface_dn).get('cRCAlignErrors'),
+            fcs_errors=data.get_dot3_stats(iface_dn).get('fCSErrors'),
+            op_state=data.get_phys_iface(iface_dn).get('operSt'),
+            op_speed=data.get_phys_iface(iface_dn).get('operSpeed'),
+        )
+
+    @staticmethod
+    def get_header():
+        return '#' + (' '.join([
+            'dn',
+            'id',
+            'admin_state',
+            'layer',
+            'crc_errors',
+            'fcs_errors',
+            'op_state',
+            'op_speed',
+        ]))
+
+    def __repr__(self):
+        return ' '.join(str(s) for s in [
+            self.dn,
+            self.id,
+            self.admin_state,
+            self.layer,
+            self.crc_errors,
+            self.fcs_errors,
+            self.op_state,
+            self.op_speed,
+        ])
+
+
+def get_phys_iface(apic: Apic):
+    raw_data = __collect_data(apic)
+    preprocessed_data = __merge_data(raw_data)
+
+    return preprocessed_data
+
+
+def __collect_data(apic: Apic):
+    phys_iface: List = apic.get_data_from_class(aci_class='l1PhysIf')
+    ether_stats: List = apic.get_data_from_class(aci_class='rmonEtherStats')
+    dot3_stats: List = apic.get_data_from_class(aci_class='rmonDot3Stats')
+
+    phys_iface_dn: Set = {iface['dn'] for iface in phys_iface}
+    ether_stats_filtered: Dict = filter_stats(ether_stats, phys_iface_dn)
+    dot3_stats_filtered: Dict = filter_stats(dot3_stats, phys_iface_dn)
+
+    phys_iface_details = {iface['dn']: iface for iface in list(map(apic.get_interface_details, phys_iface_dn))}
+
+    return PhysicalInterfaces(phys_iface, ether_stats_filtered, dot3_stats_filtered, phys_iface_details)
+
+
+def __merge_data(data: PhysicalInterfaces):
+    merged_data = []
+
+    for iface in data.phys_iface:
+        merged_data.append(InterfaceDetails.get_interface_details(iface, data))
+
+    return merged_data
+
+
+def output_iface_stats(apic: Apic):
+    iface_stats = get_phys_iface(apic)
+
+    print(InterfaceDetails.get_header())
+    for line in iface_stats:
+        print(line)
 
 
 def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
