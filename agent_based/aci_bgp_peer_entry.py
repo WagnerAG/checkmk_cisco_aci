@@ -36,8 +36,6 @@ from .agent_based_api.v1 import (
     State,
 )
 
-HEALTHY_BGP_PEER_STATE: Tuple = ('established', 'idle')
-
 
 class BgpPeerEntry(NamedTuple):
     addr: str
@@ -59,6 +57,14 @@ class BgpPeerEntry(NamedTuple):
             f'connAttempts={self.conn_attempts} '
             f'connDrop={self.conn_drop} connEst={self.conn_est}'
         )
+
+    @property
+    def cmk_state(self) -> State:
+        if self.oper_st == 'established':
+            return State.OK
+        if self.oper_st == 'idle':
+            return State.WARN
+        return State.CRIT
 
     @staticmethod
     def from_string_table(line) -> BgpPeerEntry:
@@ -103,7 +109,7 @@ def check_aci_bgp_peer_entry(item: str, section: List[BgpPeerEntry]) -> CheckRes
     for entry in section:
         if item == entry.addr:
             yield Result(
-                state=State.OK if entry.oper_st in HEALTHY_BGP_PEER_STATE else State.CRIT,
+                state=entry.cmk_state,
                 summary=entry.summary
             )
             break

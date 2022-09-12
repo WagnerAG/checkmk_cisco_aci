@@ -98,7 +98,7 @@ def test_parse_aci_bgp_peer_entry(string_table: List[List[str]], expected_sectio
             ),
         ),
         (
-            '10.79.7.34',
+            '10.77.128.64',
             [
                 BgpPeerEntry(
                     addr='10.79.7.34',
@@ -127,7 +127,63 @@ def test_parse_aci_bgp_peer_entry(string_table: List[List[str]], expected_sectio
                 Result(
                     state=State.OK,
                     summary=(
+                        'state=established type=ibgp'
+                        'remote=10.77.128.64:49916 '
+                        'local=10.77.128.65:179 '
+                        'connAttempts=na '
+                        'connDrop=0 connEst=1'
+                    )
+                ),
+            ),
+        ),
+        (
+            '10.79.7.34',
+            [
+                BgpPeerEntry(
+                    addr='10.79.7.34',
+                    conn_attempts='1144',
+                    conn_drop='4',
+                    conn_est='4',
+                    local_ip='0.0.0.0',
+                    local_port='unspecified',
+                    oper_st='idle',
+                    remote_port='unspecified',
+                    type='ebgp',
+                ),
+            ],
+            (
+                Result(
+                    state=State.WARN,
+                    summary=(
                         'state=idle type=ebgp'
+                        'remote=10.79.7.34:unspecified '
+                        'local=0.0.0.0:unspecified '
+                        'connAttempts=1144 '
+                        'connDrop=4 connEst=4'
+                    )
+                ),
+            ),
+        ),
+        (
+            '10.79.7.34',
+            [
+                BgpPeerEntry(
+                    addr='10.79.7.34',
+                    conn_attempts='1144',
+                    conn_drop='4',
+                    conn_est='4',
+                    local_ip='0.0.0.0',
+                    local_port='unspecified',
+                    oper_st='invalid',
+                    remote_port='unspecified',
+                    type='ebgp',
+                ),
+            ],
+            (
+                Result(
+                    state=State.CRIT,
+                    summary=(
+                        'state=invalid type=ebgp'
                         'remote=10.79.7.34:unspecified '
                         'local=0.0.0.0:unspecified '
                         'connAttempts=1144 '
