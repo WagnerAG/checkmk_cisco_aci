@@ -23,7 +23,7 @@ Version:    0.7
 """
 
 from __future__ import annotations
-from typing import List, NamedTuple, Tuple
+from typing import List, NamedTuple
 
 from .agent_based_api.v1.type_defs import (
     CheckResult,
