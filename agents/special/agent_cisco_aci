@@ -272,7 +272,7 @@ def output_aci_class_attributes(apic: Apic, title: str, aci_class: str, fields: 
     results = apic.get_data_from_class(aci_class)
 
     with SectionWriter(f'aci_{title}', separator=' ') as writer:
-        writer.append(" ".join(fields))
+        writer.append('#' + (' '.join(fields)))
         if isinstance(results, list):
             for result_obj in results:
                 writer.append(prepare_dict_for_writer(result_obj, fields))
