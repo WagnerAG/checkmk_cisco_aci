@@ -82,6 +82,19 @@
                 "localhost"
             ],
             "console": "integratedTerminal",
+        },
+        {
+            "name": "cmk - pytest",
+            "type": "python",
+            "request": "launch",
+            "program": "/omd/sites/cmk/bin/python3",
+            "args": [
+                "-m",
+                "pytest",
+                "--cov",
+                "agent_based"
+            ],
+            "console": "integratedTerminal",
         }
     ],
     "inputs": [
