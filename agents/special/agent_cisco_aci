@@ -21,7 +21,7 @@ Version:    0.6
 
 """
 
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 from dataclasses import dataclass
 import logging
 
@@ -127,16 +127,21 @@ class Apic:
                 LOGGING.error(error)
             exit(exit_code)
 
+    def get_imdata(self, endpoint: str) -> List:
+        response = self.session.get(urljoin(self.url, endpoint))
+        response.raise_for_status()
+        return response.json()['imdata']
 
-def get_aci_health(session, url):
+    def get_data_from_class(self, aci_class: str) -> List:
+        result = self.get_imdata(endpoint=f'class/{aci_class}.json')
+        return [item[aci_class]['attributes'] for item in result]
+
+
+def get_aci_health(apic: Apic):
     """Get Fabric Health Score"""
 
-    url += "node/mo/topology/health.json"
-    response = session.get(url)
-    health_data = json.loads(response.text)
-    response.raise_for_status()
-
-    health_score = health_data["imdata"][0]["fabricHealthTotal"]["attributes"]["cur"]
+    imdata = apic.get_imdata('node/mo/topology/health.json')
+    health_score = imdata[0]["fabricHealthTotal"]["attributes"]["cur"]
 
     return int(health_score)
 
@@ -219,15 +224,15 @@ def agent_cisco_aci_main(args: Args) -> None:
     output_aci_version(url, session)
 
     LOGGING.info("fetch and write health status..")
-    output_aci_health(url, session)
+    output_aci_health(apic)
 
     LOGGING.info("fetch and write node info..")
     output_aci_nodes(url, session)
 
-    api_paths: Dict = {
-        'bgp_peer_entry': 'bgpPeerEntry',
-    }
-    output_aci_class_attributes(url, session, api_paths)
+    output_aci_class_attributes(
+        apic, title='bgp_peer_entry', aci_class='bgpPeerEntry',
+        fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
+    )
 
     LOGGING.info("all done. cheers.")
 
@@ -241,11 +246,11 @@ def output_aci_nodes(url, session):
                 writer.append(' '.join(node))
 
 
-def output_aci_health(url, session):
-    health_score = get_aci_health(session, url)
+def output_aci_health(apic):
+    health_score = get_aci_health(apic)
 
     with SectionWriter('aci_health', separator=' ') as writer:
-        writer.append(f'health {health_score} {" ".join(get_faults(session, url))}')
+        writer.append(f'health {health_score} {" ".join(get_faults(apic.session, apic.url))}')
 
 
 def output_aci_version(url, session):
@@ -262,17 +267,22 @@ def output_header():
         writer.append('AgentOS: Cisco ACI')
 
 
-def output_aci_class_attributes(url, session, aci_classes: Dict):
-    for title, aci_class in aci_classes.items():
-        LOGGING.info(f'fetch and write {title} section')
-        result = get_json_section(session, base_url=url, path=f'class/{aci_class}.json')
+def output_aci_class_attributes(apic: Apic, title: str, aci_class: str, fields: Tuple):
+    LOGGING.info(f'fetch and write {title} section')
+    results = apic.get_data_from_class(aci_class)
 
-        with SectionWriter(f'aci_{title}', separator=' ') as writer:
-            if isinstance(result, list):
-                for line in result:
-                    writer.append(line.get(aci_class, {}).get('attributes'))
-            else:
-                writer.append(result)
+    with SectionWriter(f'aci_{title}', separator=' ') as writer:
+        writer.append(" ".join(fields))
+        if isinstance(results, list):
+            for result_obj in results:
+                writer.append(prepare_dict_for_writer(result_obj, fields))
+        else:
+            writer.append(results)
+
+
+def prepare_dict_for_writer(result_obj: Dict, fields: Tuple) -> str:
+    selected_data = [str(result_obj.get(field, 'n/a')) for field in fields]
+    return ' '.join(selected_data)
 
 
 def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
