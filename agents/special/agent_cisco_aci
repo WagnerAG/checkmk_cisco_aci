@@ -389,14 +389,9 @@ def __collect_data(apic: Apic, only_iface_admin_up: bool):
     ether_stats: List = apic.get_data_from_class(aci_class='rmonEtherStats')
     dot3_stats: List = apic.get_data_from_class(aci_class='rmonDot3Stats')
 
-    import pdb
-    pdb.set_trace()
-
     phys_iface_dn: Set = {iface['dn'] for iface in phys_iface}
     ether_stats_filtered: Dict = filter_stats(ether_stats, 'dbgEtherStats', phys_iface_dn)
     dot3_stats_filtered: Dict = filter_stats(dot3_stats, 'dbgDot3Stats', phys_iface_dn)
-
-    pdb.set_trace()
 
     phys_iface_details = {iface['dn']: iface for iface in list(map(apic.get_interface_details, phys_iface_dn))}
 
