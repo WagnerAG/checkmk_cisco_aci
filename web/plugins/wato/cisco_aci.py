@@ -17,7 +17,7 @@ Nagios CMK Datasource Programm to check Cisco ACI
 
 Authors:    Samuel Zehnder, zehnder@netcloud.ch
             Roger Ellenberger, roger.ellenberger@wagner.ch
-Version:    0.6
+Version:    0.7
 
 """
 
@@ -31,6 +31,7 @@ from cmk.gui.valuespec import (
     Dictionary,
     TextInput,
     ListOfStrings,
+    Checkbox,  # this may be renamed to Boolean in the future accordinig a comment in source code
 )
 from cmk.gui.plugins.wato.datasource_programs import RulespecGroupDatasourceProgramsHardware
 
@@ -49,6 +50,13 @@ def _valuespec_special_agents_cisco_aci():
                 )
             ),
             (
+                'dns-domain',
+                TextInput(
+                    title=_('DNS domain (for piggyback)'),
+                    allow_empty=False,
+                )
+            ),
+            (
                 'user',
                 TextInput(
                     title=_('ACI Username'),
@@ -61,7 +69,14 @@ def _valuespec_special_agents_cisco_aci():
                     title=_('Password'),
                     allow_empty=False,
                 )
-            )
+            ),
+            (
+                'only-iface-admin-up',
+                Checkbox(
+                    title=_('Monitor only interfaces with adminState "up"'),
+                    default_value=True,
+                )
+            ),
         ],
         optional_keys=[],
     )

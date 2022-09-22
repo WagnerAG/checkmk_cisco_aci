@@ -17,7 +17,7 @@ Nagios CMK Datasource Programm to check Cisco ACI
 
 Authors:    Samuel Zehnder, zehnder@netcloud.ch
             Roger Ellenberger, roger.ellenberger@wagner.ch
-Version:    0.6
+Version:    0.7
 
 """
 
@@ -31,6 +31,8 @@ def agent_cisco_aci_arguments(params, hostname, ipaddress):
     args += ["--host", *params['host']]
     args += ["--user", params['user']]
     args += ["--password", passwordstore_get_cmdline("%s", params["password"])]
+    args += ['--only-iface-admin-up', params['only-iface-admin-up']]
+    args += ["--dns-domain", params['dns-domain']]
 
     return args
 
