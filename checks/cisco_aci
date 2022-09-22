@@ -29,10 +29,11 @@ def agent_cisco_aci_arguments(params, hostname, ipaddress):
 
     args = []
     args += ["--host", *params['host']]
+    args += ["--dns-domain", params['dns-domain']]
     args += ["--user", params['user']]
     args += ["--password", passwordstore_get_cmdline("%s", params["password"])]
-    args += ['--only-iface-admin-up', params['only-iface-admin-up']]
-    args += ["--dns-domain", params['dns-domain']]
+    if params["only-iface-admin-up"]:
+        args += ["--only-iface-admin-up"]
 
     return args
 

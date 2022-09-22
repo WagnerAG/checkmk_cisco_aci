@@ -488,7 +488,7 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
                         help='DNS domain of nodes (used to correctly name piggyback hosts)')
     parser.add_argument('-u', '--user', type=str, required=True, metavar="USER", help='ACI Username')
     parser.add_argument('-p', '--password', type=str, required=True, metavar="PASSWORD", help='ACI Password')
-    parser.add_argument('--only-iface-admin-up', action="store_true", required=False, default=True,
+    parser.add_argument('--only-iface-admin-up', action="store_true", required=False, default=False,
                         help='Only monitor interfaces in admin state "up"')
 
     return parser.parse_args(argv)
