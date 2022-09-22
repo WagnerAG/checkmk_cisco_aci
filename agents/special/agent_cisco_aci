@@ -21,6 +21,8 @@ Version:    0.7
 
 """
 
+import threading
+import concurrent.futures
 from typing import Dict, List, Set, Optional, Sequence, Tuple, NamedTuple
 from dataclasses import dataclass
 import logging
@@ -107,13 +109,13 @@ class Apic:
 
         counter = 1
         s = requests.Session()
-        response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.000)
+        response = s.post(url + "aaaLogin.json", json=creds, verify=False, timeout=2.0)
 
         while response.status_code == requests.codes.unauthorized:
             if counter > MAX_RETRIES:
                 raise requests.HTTPError(json.loads(response.text)["imdata"][0]["error"]["attributes"]["text"])
             time.sleep(SLEEP_SECONDS)
-            response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.000)
+            response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.0)
             counter += 1
 
         response.raise_for_status()
@@ -137,8 +139,19 @@ class Apic:
         result = self.get_imdata(endpoint=f'class/{aci_class}.json')
         return [item[aci_class]['attributes'] for item in result]
 
-    def get_interface_details(self, dn: str):
-        response = self.session.get(urljoin(self.url, f'node/mo/{dn}/phys.json'))
+
+thread_local = threading.local()
+
+
+def get_session(apic: Apic) -> requests.Session:
+    if not hasattr(thread_local, "session"):
+        thread_local.session = requests.Session()
+        thread_local.session.cookies = apic.session.cookies.copy()
+    return thread_local.session
+
+
+def get_interface_details(dn: str, apic: Apic):
+    with get_session(apic).get(urljoin(apic.url, f'node/mo/{dn}/phys.json'), verify=False) as response:
         response.raise_for_status()
         return response.json()['imdata'][0]['ethpmPhysIf']['attributes']
 
@@ -393,9 +406,23 @@ def __collect_data(apic: Apic, only_iface_admin_up: bool):
     ether_stats_filtered: Dict = filter_stats(ether_stats, 'dbgEtherStats', phys_iface_dn)
     dot3_stats_filtered: Dict = filter_stats(dot3_stats, 'dbgDot3Stats', phys_iface_dn)
 
-    phys_iface_details = {iface['dn']: iface for iface in list(map(apic.get_interface_details, phys_iface_dn))}
+    phys_iface_details = __collect_phys_iface_details(apic, phys_iface_dn)
 
     return PhysicalInterfaces(phys_iface, ether_stats_filtered, dot3_stats_filtered, phys_iface_details)
+
+
+def __collect_phys_iface_details(apic: Apic, phys_iface_dn: Set):
+    def calc_parallel_threads(interface_count: int, div_factor: int = 8, max_threads: int = 50) -> int:
+        candidate = interface_count // div_factor
+        return candidate if candidate < max_threads else max_threads
+
+    def get_interface_details_wrapper(phys_iface_dn: str, apic: Apic = apic):
+        return get_interface_details(phys_iface_dn, apic)
+
+    worker_threads: int = calc_parallel_threads(interface_count=len(phys_iface_dn))
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=worker_threads) as executor:
+        return {iface['dn']: iface for iface in list(executor.map(get_interface_details_wrapper, phys_iface_dn))}
 
 
 def __merge_data(data: PhysicalInterfaces):
