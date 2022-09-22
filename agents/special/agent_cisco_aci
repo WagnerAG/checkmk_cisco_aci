@@ -325,10 +325,10 @@ def prepare_dict_for_writer(result_obj: Dict, fields: Tuple) -> str:
 
 
 def filter_stats(stats: List, aci_class: str, phys_iface_dn: Set):
-    return {stats['dn']: stats for stats in stats if _stripi_dn(stats['dn'], aci_class) in phys_iface_dn}
+    return {stats['dn']: stats for stats in stats if _strip_dn(stats['dn'], aci_class) in phys_iface_dn}
 
 
-def _stripi_dn(dn: str, aci_class: str) -> str:
+def _strip_dn(dn: str, aci_class: str) -> str:
     return dn.replace(aci_class, '').strip('/')
 
 
