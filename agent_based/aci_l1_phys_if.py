@@ -22,8 +22,9 @@ Version:    0.7
 """
 
 from __future__ import annotations
+from dataclasses import dataclass
 import time
-from typing import Dict, NamedTuple, Tuple
+from typing import Dict, NamedTuple, Optional
 
 from .agent_based_api.v1.type_defs import (
     CheckResult,
@@ -40,7 +41,17 @@ from .agent_based_api.v1 import (
 )
 
 
-class AciL1Interface(NamedTuple):
+ROUND_TO_DIGITS: int = 4
+
+
+class ErrorRates(NamedTuple):
+    crc: Optional[float] = None
+    fcs: Optional[float] = None
+    stomped_crc: Optional[float] = None
+
+
+@dataclass
+class AciL1Interface:
     dn: str
     id: str
     admin_state: str
@@ -49,28 +60,34 @@ class AciL1Interface(NamedTuple):
     fcs_errors: int
     op_state: str
     op_speed: str
+    rates: Optional[ErrorRates] = None
 
-    def calculate_error_counters(self) -> Tuple:
+    def calculate_error_counters(self) -> ErrorRates:
         """calculate the error rate using value_store and get_rate
 
         values are stored using dn, which is a unique ID per Apic
         """
-        value_store = get_value_store()
-        now = time.time()
+        if not self.rates:
+            value_store = get_value_store()
+            now = time.time()
 
-        crc_rate = get_rate(value_store,
-                            f'cisco_aci.{self.dn}.crc',
-                            now,
-                            self.crc_errors)
+            crc_rate = get_rate(value_store,
+                                f'cisco_aci.{self.dn}.crc',
+                                now,
+                                self.crc_errors)
 
-        fcs_rate = get_rate(value_store,
-                            f'cisco_aci.{self.dn}.fcs',
-                            now,
-                            self.fcs_errors)
+            fcs_rate = get_rate(value_store,
+                                f'cisco_aci.{self.dn}.fcs',
+                                now,
+                                self.fcs_errors)
 
-        stomped_crc_rate = crc_rate - fcs_rate
+            stomped_crc_rate = crc_rate - fcs_rate
 
-        return crc_rate, fcs_rate, stomped_crc_rate
+            self.rates = ErrorRates(crc=crc_rate, fcs=fcs_rate, stomped_crc=stomped_crc_rate)
+
+            return self.rates
+
+        return self.rates
 
     @staticmethod
     def from_string_table(line) -> AciL1Interface:
@@ -81,20 +98,31 @@ class AciL1Interface(NamedTuple):
 
     @property
     def state(self) -> State:
+        self.calculate_error_counters()
+
+        if self.rates.fcs > 0 or self.rates.stomped_crc > 1:
+            return State.CRIT
+
+        if self.rates.stomped_crc > 0:
+            return State.WARN
+
         if self.admin_state == 'up' and self.op_state == 'down':
             return State.WARN
 
         return State.OK
 
-    def get_summary(self, fcs, crc, stomped_crc):
+    @property
+    def get_summary(self):
+        self.calculate_error_counters()
+
         return (
             f'admin_state={self.admin_state} '
             f'op_state={self.op_state} '
             f'layer={self.layer} '
             f'op_speed={self.op_speed} | '
-            f'errors: FCS={fcs} '
-            f'CRC={crc} '
-            f'stomped_CRC={stomped_crc}'
+            f'errors: FCS={round(self.rates.fcs, ROUND_TO_DIGITS)} '
+            f'CRC={round(self.rates.crc, ROUND_TO_DIGITS)} '
+            f'stomped_CRC={round(self.rates.stomped_crc, ROUND_TO_DIGITS)}'
         )
 
 
@@ -120,12 +148,10 @@ def check_aci_l1_phys_if(item: str, section: Dict[str, AciL1Interface]) -> Check
     if not interface:
         yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
     else:
-        crc_rate, fcs_rate, stomped_crc_rate = interface.calculate_error_counters()
-
-        yield Result(state=interface.state, summary=interface.get_summary(crc_rate, fcs_rate, stomped_crc_rate))
-        yield Metric('fcs_errors', fcs_rate, levels=(0.001, 0.001))
-        yield Metric('crc_errors', crc_rate)
-        yield Metric('stomped_crc_errors', stomped_crc_rate, levels=(0.001, 100))
+        yield Result(state=interface.state, summary=interface.get_summary)
+        yield Metric('fcs_errors', round(interface.rates.fcs, ROUND_TO_DIGITS), levels=(0.001, 0.001))
+        yield Metric('crc_errors', round(interface.rates.crc, ROUND_TO_DIGITS))
+        yield Metric('stomped_crc_errors', round(interface.rates.stomped_crc, ROUND_TO_DIGITS), levels=(0.001, 100))
 
 
 register.check_plugin(

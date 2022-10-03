@@ -17,6 +17,7 @@ from unittest.mock import patch
 from datetime import datetime, timedelta
 
 import pytest
+from freezegun import freeze_time
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Metric
 from cmk.base.plugins.agent_based.aci_l1_phys_if import (
@@ -29,42 +30,42 @@ from cmk.base.plugins.agent_based.aci_l1_phys_if import (
 L1_INTERFACES: List[AciL1Interface] = {
     'eth1/33': AciL1Interface(
         dn='topology/pod-1/node-101/sys/phys-[eth1/33]', id='eth1/33', admin_state='up', layer='Layer3',
-        crc_errors=0, fcs_errors=0, op_state='down', op_speed='10G',
+        crc_errors=0, fcs_errors=0, op_state='down', op_speed='10G', rates=None,
     ),
 
     'eth1/34': AciL1Interface(
         dn='topology/pod-1/node-101/sys/phys-[eth1/34]', id='eth1/34', admin_state='up', layer='Layer2',
-        crc_errors=0, fcs_errors=0, op_state='down', op_speed='10G',
+        crc_errors=0, fcs_errors=0, op_state='down', op_speed='10G', rates=None,
     ),
 
     'eth1/1': AciL1Interface(
         dn='topology/pod-1/node-101/sys/phys-[eth1/1]', id='eth1/1', admin_state='up', layer='Layer3',
-        crc_errors=0, fcs_errors=0, op_state='up', op_speed='40G',
+        crc_errors=0, fcs_errors=0, op_state='up', op_speed='40G', rates=None,
     ),
 
     'eth1/2': AciL1Interface(
         dn='topology/pod-1/node-101/sys/phys-[eth1/2]', id='eth1/2', admin_state='up', layer='Layer3',
-        crc_errors=0, fcs_errors=0, op_state='down', op_speed='unknown',
+        crc_errors=0, fcs_errors=0, op_state='down', op_speed='unknown', rates=None,
     ),
 
     'eth1/3': AciL1Interface(
         dn='topology/pod-1/node-101/sys/phys-[eth1/3]', id='eth1/3', admin_state='up', layer='Layer3',
-        crc_errors=0, fcs_errors=0, op_state='up', op_speed='40G',
+        crc_errors=131, fcs_errors=0, op_state='up', op_speed='40G', rates=None,
     ),
 
     'eth1/4': AciL1Interface(
         dn='topology/pod-1/node-101/sys/phys-[eth1/4]', id='eth1/4', admin_state='up', layer='Layer3',
-        crc_errors=0, fcs_errors=1, op_state='up', op_speed='100G',
+        crc_errors=289, fcs_errors=217, op_state='up', op_speed='100G', rates=None,
     ),
 
     'eth1/5': AciL1Interface(
         dn='topology/pod-1/node-101/sys/phys-[eth1/5]', id='eth1/5', admin_state='up', layer='Layer3',
-        crc_errors=0, fcs_errors=0, op_state='down', op_speed='100G',
+        crc_errors=12, fcs_errors=0, op_state='up', op_speed='100G', rates=None,
     ),
 
     'nsa1/1': AciL1Interface(
         dn='topology/pod-1/node-101/sys/phys-[nsa1/1]', id='nsa1/1', admin_state='up', layer='Layer9',
-        crc_errors=0, fcs_errors=0, op_state='up', op_speed='10T',
+        crc_errors=0, fcs_errors=0, op_state='up', op_speed='10T', rates=None,
     ),
 }
 
@@ -84,7 +85,7 @@ L1_INTERFACES: List[AciL1Interface] = {
             {
                 'eth1/20': AciL1Interface(
                     dn='topology/pod-1/node-101/sys/phys-[eth1/20]', id='eth1/20', admin_state='up', layer='Layer3',
-                    crc_errors=0, fcs_errors=0, op_state='down', op_speed='100G'
+                    crc_errors=0, fcs_errors=0, op_state='down', op_speed='100G', rates=None,
                 ),
             }
         ),
@@ -95,9 +96,9 @@ L1_INTERFACES: List[AciL1Interface] = {
                 ['topology/pod-1/node-101/sys/phys-[eth1/34]', 'eth1/34', 'up', 'Layer2', '0', '0', 'down', '10G'],
                 ['topology/pod-1/node-101/sys/phys-[eth1/1]', 'eth1/1', 'up', 'Layer3', '0', '0', 'up', '40G'],
                 ['topology/pod-1/node-101/sys/phys-[eth1/2]', 'eth1/2', 'up', 'Layer3', '0', '0', 'down', 'unknown'],
-                ['topology/pod-1/node-101/sys/phys-[eth1/3]', 'eth1/3', 'up', 'Layer3', '0', '0', 'up', '40G'],
-                ['topology/pod-1/node-101/sys/phys-[eth1/4]', 'eth1/4', 'up', 'Layer3', '0', '1', 'up', '100G'],
-                ['topology/pod-1/node-101/sys/phys-[eth1/5]', 'eth1/5', 'up', 'Layer3', '0', '0', 'down', '100G'],
+                ['topology/pod-1/node-101/sys/phys-[eth1/3]', 'eth1/3', 'up', 'Layer3', '131', '0', 'up', '40G'],
+                ['topology/pod-1/node-101/sys/phys-[eth1/4]', 'eth1/4', 'up', 'Layer3', '289', '217', 'up', '100G'],
+                ['topology/pod-1/node-101/sys/phys-[eth1/5]', 'eth1/5', 'up', 'Layer3', '12', '0', 'up', '100G'],
                 ['topology/pod-1/node-101/sys/phys-[nsa1/1]', 'nsa1/1', 'up', 'Layer9', '0', '0', 'up', '10T'],
             ],
             L1_INTERFACES,
@@ -108,6 +109,7 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
     assert parse_aci_l1_phys_if(string_table) == expected_section
 
 
+@freeze_time("2009-01-15 15:26:00")
 @pytest.mark.parametrize(
     "item, section, expected_check_result",
     [
@@ -122,10 +124,47 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
             'eth1/33',
             L1_INTERFACES,
             (
-                Result(
-                    state=State.WARN,
-                    summary=('admin_state=up op_state=down layer=Layer3 op_speed=10G | errors: FCS=0.0 CRC=0.0 stomped_CRC=0.0')
-                ),
+                Result(state=State.WARN, summary=('admin_state=up op_state=down layer=Layer3 op_speed=10G | errors: FCS=0.0 CRC=0.0 stomped_CRC=0.0')),
+                Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
+                Metric('crc_errors', 0.0),
+                Metric('stomped_crc_errors', 0.0, levels=(0.001, 100)),
+            ),
+        ),
+        (
+            'eth1/3',
+            L1_INTERFACES,
+            (
+                Result(state=State.CRIT, summary=('admin_state=up op_state=up layer=Layer3 op_speed=40G | errors: FCS=0.0 CRC=1.0917 stomped_CRC=1.0917')),
+                Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
+                Metric('crc_errors', 1.0917),
+                Metric('stomped_crc_errors', 1.0917, levels=(0.001, 100)),
+            ),
+        ),
+        (
+            'eth1/4',
+            L1_INTERFACES,
+            (
+                Result(state=State.CRIT, summary=('admin_state=up op_state=up layer=Layer3 op_speed=100G | errors: FCS=1.8083 CRC=2.4083 stomped_CRC=0.6')),
+                Metric('fcs_errors', 1.8083, levels=(0.001, 0.001)),
+                Metric('crc_errors', 2.4083),
+                Metric('stomped_crc_errors', 0.6, levels=(0.001, 100)),
+            ),
+        ),
+        (
+            'eth1/5',
+            L1_INTERFACES,
+            (
+                Result(state=State.WARN, summary=('admin_state=up op_state=up layer=Layer3 op_speed=100G | errors: FCS=0.0 CRC=0.1 stomped_CRC=0.1')),
+                Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
+                Metric('crc_errors', 0.1),
+                Metric('stomped_crc_errors', 0.1, levels=(0.001, 100)),
+            ),
+        ),
+        (
+            'nsa1/1',
+            L1_INTERFACES,
+            (
+                Result(state=State.OK, summary=('admin_state=up op_state=up layer=Layer9 op_speed=10T | errors: FCS=0.0 CRC=0.0 stomped_CRC=0.0')),
                 Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
                 Metric('crc_errors', 0.0),
                 Metric('stomped_crc_errors', 0.0, levels=(0.001, 100)),
@@ -136,7 +175,7 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
 def test_check_aci_l1_phys_if(item: str, section: Dict[str, AciL1Interface], expected_check_result: Tuple) -> None:
     with patch('cmk.base.plugins.agent_based.aci_l1_phys_if.get_value_store') as mock_get:
         if item:
-            timestamp = int((datetime.now() - timedelta(minutes=10)).timestamp())
+            timestamp = int((datetime.now() - timedelta(minutes=2)).timestamp())
             dn = section.get(item).dn
             mock_get.return_value = {f'cisco_aci.{dn}.crc': (timestamp, 0.0), f'cisco_aci.{dn}.fcs': (timestamp, 0.0)}
         assert tuple(check_aci_l1_phys_if(item, section)) == expected_check_result
