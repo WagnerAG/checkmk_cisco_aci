@@ -112,6 +112,10 @@ class AciL1Interface:
         return State.OK
 
     @property
+    def stomped_crc(self):
+        return self.crc_errors - self.fcs_errors
+
+    @property
     def get_summary(self):
         self.calculate_error_counters()
 
@@ -120,9 +124,9 @@ class AciL1Interface:
             f'op_state={self.op_state} '
             f'layer={self.layer} '
             f'op_speed={self.op_speed} | '
-            f'errors: FCS={round(self.rates.fcs, ROUND_TO_DIGITS)} '
-            f'CRC={round(self.rates.crc, ROUND_TO_DIGITS)} '
-            f'stomped_CRC={round(self.rates.stomped_crc, ROUND_TO_DIGITS)}'
+            f'errors: FCS={round(self.rates.fcs, ROUND_TO_DIGITS)}/s ({self.fcs_errors} total) '
+            f'CRC={round(self.rates.crc, ROUND_TO_DIGITS)}/s ({self.crc_errors} total) '
+            f'stomped_CRC={round(self.rates.stomped_crc, ROUND_TO_DIGITS)}/s ({self.stomped_crc} total)'
         )
 
 
