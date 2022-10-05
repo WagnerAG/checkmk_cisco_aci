@@ -124,7 +124,9 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
             'eth1/33',
             L1_INTERFACES,
             (
-                Result(state=State.WARN, summary=('admin_state=up op_state=down layer=Layer3 op_speed=10G | errors: FCS=0.0/s (0 total) CRC=0.0/s (0 total) stomped_CRC=0.0/s (0 total)')),
+                Result(state=State.WARN, summary=('state: up/down (admin/op) layer: 3 op_speed: 10G | errors: FCS=0.0/min (0 total) CRC=0.0/min (0 total) stomped_CRC=0.0/min (0 total)'),
+                       details=('Admin state: up \nOperational state: down \nLayer: Layer3 \nOperational speed: 10G \n\n'
+                                'FCS errors: 0.0/min (0 errors in total) \nCRC errors: 0.0/min (0 errors in total) \nStomped CRC errors: 0.0/min (0 errors in total)')),
                 Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
                 Metric('crc_errors', 0.0),
                 Metric('stomped_crc_errors', 0.0, levels=(0.001, 100)),
@@ -134,37 +136,45 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
             'eth1/3',
             L1_INTERFACES,
             (
-                Result(state=State.CRIT, summary=('admin_state=up op_state=up layer=Layer3 op_speed=40G | errors: FCS=0.0/s (0 total) CRC=1.0917/s (131 total) stomped_CRC=1.0917/s (131 total)')),
+                Result(state=State.CRIT, summary=('state: up/up (admin/op) layer: 3 op_speed: 40G | errors: FCS=0.0/min (0 total) CRC=65.5/min (131 total) stomped_CRC=65.5/min (131 total)'),
+                       details=('Admin state: up \nOperational state: up \nLayer: Layer3 \nOperational speed: 40G \n\n'
+                                'FCS errors: 0.0/min (0 errors in total) \nCRC errors: 65.5/min (131 errors in total) \nStomped CRC errors: 65.5/min (131 errors in total)')),
                 Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
-                Metric('crc_errors', 1.0917),
-                Metric('stomped_crc_errors', 1.0917, levels=(0.001, 100)),
+                Metric('crc_errors', 65.5),
+                Metric('stomped_crc_errors', 65.5, levels=(0.001, 100)),
             ),
         ),
         (
             'eth1/4',
             L1_INTERFACES,
             (
-                Result(state=State.CRIT, summary=('admin_state=up op_state=up layer=Layer3 op_speed=100G | errors: FCS=1.8083/s (217 total) CRC=2.4083/s (289 total) stomped_CRC=0.6/s (72 total)')),
-                Metric('fcs_errors', 1.8083, levels=(0.001, 0.001)),
-                Metric('crc_errors', 2.4083),
-                Metric('stomped_crc_errors', 0.6, levels=(0.001, 100)),
+                Result(state=State.CRIT, summary=('state: up/up (admin/op) layer: 3 op_speed: 100G | errors: FCS=108.5/min (217 total) CRC=144.5/min (289 total) stomped_CRC=36.0/min (72 total)'),
+                       details=('Admin state: up \nOperational state: up \nLayer: Layer3 \nOperational speed: 100G \n\n'
+                                'FCS errors: 108.5/min (217 errors in total) \nCRC errors: 144.5/min (289 errors in total) \nStomped CRC errors: 36.0/min (72 errors in total)')),
+                Metric('fcs_errors', 108.5, levels=(0.001, 0.001)),
+                Metric('crc_errors', 144.5),
+                Metric('stomped_crc_errors', 36.0, levels=(0.001, 100)),
             ),
         ),
         (
             'eth1/5',
             L1_INTERFACES,
             (
-                Result(state=State.WARN, summary=('admin_state=up op_state=up layer=Layer3 op_speed=100G | errors: FCS=0.0/s (0 total) CRC=0.1/s (12 total) stomped_CRC=0.1/s (12 total)')),
+                Result(state=State.WARN, summary=('state: up/up (admin/op) layer: 3 op_speed: 100G | errors: FCS=0.0/min (0 total) CRC=6.0/min (12 total) stomped_CRC=6.0/min (12 total)'),
+                       details=('Admin state: up \nOperational state: up \nLayer: Layer3 \nOperational speed: 100G \n\n'
+                                'FCS errors: 0.0/min (0 errors in total) \nCRC errors: 6.0/min (12 errors in total) \nStomped CRC errors: 6.0/min (12 errors in total)')),
                 Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
-                Metric('crc_errors', 0.1),
-                Metric('stomped_crc_errors', 0.1, levels=(0.001, 100)),
+                Metric('crc_errors', 6.0),
+                Metric('stomped_crc_errors', 6.0, levels=(0.001, 100)),
             ),
         ),
         (
             'nsa1/1',
             L1_INTERFACES,
             (
-                Result(state=State.OK, summary=('admin_state=up op_state=up layer=Layer9 op_speed=10T | errors: FCS=0.0/s (0 total) CRC=0.0/s (0 total) stomped_CRC=0.0/s (0 total)')),
+                Result(state=State.OK, summary=('state: up/up (admin/op) layer: 9 op_speed: 10T | errors: FCS=0.0/min (0 total) CRC=0.0/min (0 total) stomped_CRC=0.0/min (0 total)'),
+                       details=('Admin state: up \nOperational state: up \nLayer: Layer9 \nOperational speed: 10T \n\n'
+                                'FCS errors: 0.0/min (0 errors in total) \nCRC errors: 0.0/min (0 errors in total) \nStomped CRC errors: 0.0/min (0 errors in total)')),
                 Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
                 Metric('crc_errors', 0.0),
                 Metric('stomped_crc_errors', 0.0, levels=(0.001, 100)),

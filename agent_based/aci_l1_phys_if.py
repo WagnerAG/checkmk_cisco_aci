@@ -23,6 +23,7 @@ Version:    0.7
 
 from __future__ import annotations
 from dataclasses import dataclass
+from enum import Enum
 import time
 from typing import Dict, NamedTuple, Optional
 
@@ -41,7 +42,15 @@ from .agent_based_api.v1 import (
 )
 
 
-ROUND_TO_DIGITS: int = 4
+ROUND_TO_DIGITS: int = 2
+
+
+class ConversionFactor(Enum):
+    MIN: int = 60
+
+
+def convert_rate(value: float, factor: ConversionFactor = ConversionFactor.MIN) -> float:
+    return value * factor.value
 
 
 class ErrorRates(NamedTuple):
@@ -71,15 +80,15 @@ class AciL1Interface:
             value_store = get_value_store()
             now = time.time()
 
-            crc_rate = get_rate(value_store,
-                                f'cisco_aci.{self.dn}.crc',
-                                now,
-                                self.crc_errors)
+            crc_rate = convert_rate(get_rate(value_store,
+                                             f'cisco_aci.{self.dn}.crc',
+                                             now,
+                                             self.crc_errors))
 
-            fcs_rate = get_rate(value_store,
-                                f'cisco_aci.{self.dn}.fcs',
-                                now,
-                                self.fcs_errors)
+            fcs_rate = convert_rate(get_rate(value_store,
+                                             f'cisco_aci.{self.dn}.fcs',
+                                             now,
+                                             self.fcs_errors))
 
             stomped_crc_rate = crc_rate - fcs_rate
 
@@ -100,7 +109,7 @@ class AciL1Interface:
     def state(self) -> State:
         self.calculate_error_counters()
 
-        if self.rates.fcs > 0 or self.rates.stomped_crc > 1:
+        if self.rates.fcs > 0 or self.rates.stomped_crc > 12:
             return State.CRIT
 
         if self.rates.stomped_crc > 0:
@@ -116,17 +125,34 @@ class AciL1Interface:
         return self.crc_errors - self.fcs_errors
 
     @property
-    def get_summary(self):
+    def layer_short(self) -> str:
+        return self.layer.lower().replace('layer', '')
+
+    @property
+    def summary(self):
         self.calculate_error_counters()
 
         return (
-            f'admin_state={self.admin_state} '
-            f'op_state={self.op_state} '
-            f'layer={self.layer} '
-            f'op_speed={self.op_speed} | '
-            f'errors: FCS={round(self.rates.fcs, ROUND_TO_DIGITS)}/s ({self.fcs_errors} total) '
-            f'CRC={round(self.rates.crc, ROUND_TO_DIGITS)}/s ({self.crc_errors} total) '
-            f'stomped_CRC={round(self.rates.stomped_crc, ROUND_TO_DIGITS)}/s ({self.stomped_crc} total)'
+            f'state: {self.admin_state}/{self.op_state} (admin/op) '
+            f'layer: {self.layer_short} '
+            f'op_speed: {self.op_speed} | '
+            f'errors: FCS={round(self.rates.fcs, ROUND_TO_DIGITS)}/min ({self.fcs_errors} total) '
+            f'CRC={round(self.rates.crc, ROUND_TO_DIGITS)}/min ({self.crc_errors} total) '
+            f'stomped_CRC={round(self.rates.stomped_crc, ROUND_TO_DIGITS)}/min ({self.stomped_crc} total)'
+        )
+
+    @property
+    def details(self):
+        self.calculate_error_counters()
+
+        return (
+            f'Admin state: {self.admin_state} \n'
+            f'Operational state: {self.op_state} \n'
+            f'Layer: {self.layer} \n'
+            f'Operational speed: {self.op_speed} \n\n'
+            f'FCS errors: {round(self.rates.fcs, ROUND_TO_DIGITS)}/min ({self.fcs_errors} errors in total) \n'
+            f'CRC errors: {round(self.rates.crc, ROUND_TO_DIGITS)}/min ({self.crc_errors} errors in total) \n'
+            f'Stomped CRC errors: {round(self.rates.stomped_crc, ROUND_TO_DIGITS)}/min ({self.stomped_crc} errors in total)'
         )
 
 
@@ -152,7 +178,7 @@ def check_aci_l1_phys_if(item: str, section: Dict[str, AciL1Interface]) -> Check
     if not interface:
         yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
     else:
-        yield Result(state=interface.state, summary=interface.get_summary)
+        yield Result(state=interface.state, summary=interface.summary, details=interface.details)
         yield Metric('fcs_errors', round(interface.rates.fcs, ROUND_TO_DIGITS), levels=(0.001, 0.001))
         yield Metric('crc_errors', round(interface.rates.crc, ROUND_TO_DIGITS))
         yield Metric('stomped_crc_errors', round(interface.rates.stomped_crc, ROUND_TO_DIGITS), levels=(0.001, 100))
