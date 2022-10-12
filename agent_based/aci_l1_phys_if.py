@@ -39,7 +39,6 @@ from .agent_based_api.v1 import (
     Metric,
     get_rate,
     get_value_store,
-    check_levels,
 )
 
 
@@ -52,10 +51,10 @@ DEFAULT_ERROR_LEVELS: Dict = {
 
 
 class ConversionFactor(Enum):
-    MIN: int = 60
+    MINUTES: int = 60
 
 
-def convert_rate(value: float, factor: ConversionFactor = ConversionFactor.MIN) -> float:
+def convert_rate(value: float, factor: ConversionFactor = ConversionFactor.MINUTES) -> float:
     return value * factor.value
 
 

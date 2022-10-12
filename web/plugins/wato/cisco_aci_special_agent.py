@@ -49,7 +49,7 @@ def _valuespec_special_agents_cisco_aci():
                     allow_empty=False,
                 )
             ),
-            ( 
+            (
                 'dns-domain',
                 TextInput(
                     title=_('DNS domain (for piggyback)'),
