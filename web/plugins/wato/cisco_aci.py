@@ -49,11 +49,12 @@ def _valuespec_special_agents_cisco_aci():
                     allow_empty=False,
                 )
             ),
-            (
+            ( 
                 'dns-domain',
                 TextInput(
                     title=_('DNS domain (for piggyback)'),
-                    allow_empty=False,
+                    help=_('This value is appended to each piggyback host. Use it in case hosts in Check MK use fqdn'),
+                    allow_empty=True,
                 )
             ),
             (

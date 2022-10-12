@@ -473,7 +473,7 @@ def output_iface_stats(apic: Apic, only_iface_admin_up: bool, aci_nodes: List[Ac
     iface_stats: Dict[str, List] = get_phys_iface(apic, only_iface_admin_up, aci_nodes)
 
     for node, iface in iface_stats.items():
-        with ConditionalPiggybackSection(f'{node}.{dns_domain}'):
+        with ConditionalPiggybackSection(f'{node}.{dns_domain}' if dns_domain else node):
             with SectionWriter('aci_l1_phys_if', separator=' ') as writer:
                 writer.append(InterfaceDetails.get_header())
                 for line in iface:
@@ -484,7 +484,7 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
     parser = create_default_argument_parser(description=__doc__)
     parser.add_argument('-H', '--host', type=str, required=True, metavar="HOST", nargs='+',
                         help='APIC IP, multiple IPs (Ctrls) accepted')
-    parser.add_argument('-D', '--dns-domain', type=str, required=True, metavar="DOMAIN",
+    parser.add_argument('-D', '--dns-domain', type=str, required=False, metavar="DOMAIN",
                         help='DNS domain of nodes (used to correctly name piggyback hosts)')
     parser.add_argument('-u', '--user', type=str, required=True, metavar="USER", help='ACI Username')
     parser.add_argument('-p', '--password', type=str, required=True, metavar="PASSWORD", help='ACI Password')
