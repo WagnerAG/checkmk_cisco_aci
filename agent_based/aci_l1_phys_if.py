@@ -25,7 +25,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 import time
-from typing import Dict, NamedTuple, Optional
+from typing import Dict, NamedTuple, Optional, Tuple
 
 from .agent_based_api.v1.type_defs import (
     CheckResult,
@@ -39,10 +39,16 @@ from .agent_based_api.v1 import (
     Metric,
     get_rate,
     get_value_store,
+    check_levels,
 )
 
 
 ROUND_TO_DIGITS: int = 2
+DEFAULT_ERROR_LEVELS: Dict = {
+    'level_fcs_errors': (0.01, 1.0),
+    'level_crc_errors': (1.0, 12.0),
+    'level_stomped_crc_errors': (1.0, 12.0),
+}
 
 
 class ConversionFactor(Enum):
@@ -57,6 +63,31 @@ class ErrorRates(NamedTuple):
     crc: Optional[float] = None
     fcs: Optional[float] = None
     stomped_crc: Optional[float] = None
+
+    @staticmethod
+    def _get_levels(params: Dict, state: State) -> Tuple:
+        fcs_warn, fcs_crit = params.get('level_fcs_errors')
+        crc_warn, crc_crit = params.get('level_crc_errors')
+        stomped_crc_warn, stomped_crc_crit = params.get('level_stomped_crc_errors')
+
+        if state == State.CRIT:
+            return fcs_crit, crc_crit, stomped_crc_crit
+        elif state == State.WARN:
+            return fcs_warn, crc_warn, stomped_crc_warn
+        else:
+            raise ValueError(f'No valid state provided. Allowed are State.CRIT and State.WARN. Got state={state}')
+
+    def _check_state(self, params, state: State) -> bool:
+        fcs_level, crc_level, stomped_crc_level = self._get_levels(params, state)
+        return self.fcs >= fcs_level or \
+            self.crc >= crc_level or \
+            self.stomped_crc >= stomped_crc_level
+
+    def is_crit(self, params) -> bool:
+        return self._check_state(params, state=State.CRIT)
+
+    def is_warn(self, params) -> bool:
+        return self._check_state(params, state=State.WARN)
 
 
 @dataclass
@@ -105,14 +136,13 @@ class AciL1Interface:
 
         return AciL1Interface(*line)
 
-    @property
-    def state(self) -> State:
+    def get_state(self, params: Dict) -> State:
         self.calculate_error_counters()
 
-        if self.rates.fcs > 0 or self.rates.stomped_crc > 12:
+        if self.rates.is_crit(params):
             return State.CRIT
 
-        if self.rates.stomped_crc > 0:
+        if self.rates.is_warn(params):
             return State.WARN
 
         if self.admin_state == 'up' and self.op_state == 'down':
@@ -172,16 +202,16 @@ def discover_aci_l1_phys_if(section: Dict[str, AciL1Interface]) -> DiscoveryResu
         yield Service(item=interface_id)
 
 
-def check_aci_l1_phys_if(item: str, section: Dict[str, AciL1Interface]) -> CheckResult:
+def check_aci_l1_phys_if(item: str, params: Dict, section: Dict[str, AciL1Interface]) -> CheckResult:
     interface: AciL1Interface = section.get(item)
 
     if not interface:
         yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
     else:
-        yield Result(state=interface.state, summary=interface.summary, details=interface.details)
-        yield Metric('fcs_errors', round(interface.rates.fcs, ROUND_TO_DIGITS), levels=(0.001, 0.001))
-        yield Metric('crc_errors', round(interface.rates.crc, ROUND_TO_DIGITS))
-        yield Metric('stomped_crc_errors', round(interface.rates.stomped_crc, ROUND_TO_DIGITS), levels=(0.001, 100))
+        yield Result(state=interface.get_state(params), summary=interface.summary, details=interface.details)
+        yield Metric('fcs_errors', round(interface.rates.fcs, ROUND_TO_DIGITS), levels=params.get('level_fcs_errors'))
+        yield Metric('crc_errors', round(interface.rates.crc, ROUND_TO_DIGITS), levels=params.get('level_crc_errors'))
+        yield Metric('stomped_crc_errors', round(interface.rates.stomped_crc, ROUND_TO_DIGITS), levels=params.get('level_stomped_crc_errors'))
 
 
 register.check_plugin(
@@ -189,4 +219,6 @@ register.check_plugin(
     service_name='L1 phys interface %s',
     discovery_function=discover_aci_l1_phys_if,
     check_function=check_aci_l1_phys_if,
+    check_ruleset_name='aci_l1_phys_if_levels',
+    check_default_parameters=DEFAULT_ERROR_LEVELS,
 )

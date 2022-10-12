@@ -24,7 +24,12 @@ from cmk.base.plugins.agent_based.aci_l1_phys_if import (
     parse_aci_l1_phys_if,
     check_aci_l1_phys_if,
     AciL1Interface,
+    DEFAULT_ERROR_LEVELS,
 )
+
+FCS_LEVELS = DEFAULT_ERROR_LEVELS.get('level_fcs_errors')
+CRC_LEVELS = DEFAULT_ERROR_LEVELS.get('level_crc_errors')
+STOMPED_CRC_LEVELS = DEFAULT_ERROR_LEVELS.get('level_stomped_crc_errors')
 
 
 L1_INTERFACES: List[AciL1Interface] = {
@@ -127,9 +132,9 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
                 Result(state=State.WARN, summary=('state: up/down (admin/op) layer: 3 op_speed: 10G | errors: FCS=0.0/min (0 total) CRC=0.0/min (0 total) stomped_CRC=0.0/min (0 total)'),
                        details=('Admin state: up \nOperational state: down \nLayer: Layer3 \nOperational speed: 10G \n\n'
                                 'FCS errors: 0.0/min (0 errors in total) \nCRC errors: 0.0/min (0 errors in total) \nStomped CRC errors: 0.0/min (0 errors in total)')),
-                Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
-                Metric('crc_errors', 0.0),
-                Metric('stomped_crc_errors', 0.0, levels=(0.001, 100)),
+                Metric('fcs_errors', 0.0, levels=FCS_LEVELS),
+                Metric('crc_errors', 0.0, levels=CRC_LEVELS),
+                Metric('stomped_crc_errors', 0.0, levels=STOMPED_CRC_LEVELS),
             ),
         ),
         (
@@ -139,9 +144,9 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
                 Result(state=State.CRIT, summary=('state: up/up (admin/op) layer: 3 op_speed: 40G | errors: FCS=0.0/min (0 total) CRC=65.5/min (131 total) stomped_CRC=65.5/min (131 total)'),
                        details=('Admin state: up \nOperational state: up \nLayer: Layer3 \nOperational speed: 40G \n\n'
                                 'FCS errors: 0.0/min (0 errors in total) \nCRC errors: 65.5/min (131 errors in total) \nStomped CRC errors: 65.5/min (131 errors in total)')),
-                Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
-                Metric('crc_errors', 65.5),
-                Metric('stomped_crc_errors', 65.5, levels=(0.001, 100)),
+                Metric('fcs_errors', 0.0, levels=FCS_LEVELS),
+                Metric('crc_errors', 65.5, levels=CRC_LEVELS),
+                Metric('stomped_crc_errors', 65.5, levels=STOMPED_CRC_LEVELS),
             ),
         ),
         (
@@ -151,9 +156,9 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
                 Result(state=State.CRIT, summary=('state: up/up (admin/op) layer: 3 op_speed: 100G | errors: FCS=108.5/min (217 total) CRC=144.5/min (289 total) stomped_CRC=36.0/min (72 total)'),
                        details=('Admin state: up \nOperational state: up \nLayer: Layer3 \nOperational speed: 100G \n\n'
                                 'FCS errors: 108.5/min (217 errors in total) \nCRC errors: 144.5/min (289 errors in total) \nStomped CRC errors: 36.0/min (72 errors in total)')),
-                Metric('fcs_errors', 108.5, levels=(0.001, 0.001)),
-                Metric('crc_errors', 144.5),
-                Metric('stomped_crc_errors', 36.0, levels=(0.001, 100)),
+                Metric('fcs_errors', 108.5, levels=FCS_LEVELS),
+                Metric('crc_errors', 144.5, levels=CRC_LEVELS),
+                Metric('stomped_crc_errors', 36.0, levels=STOMPED_CRC_LEVELS),
             ),
         ),
         (
@@ -163,9 +168,9 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
                 Result(state=State.WARN, summary=('state: up/up (admin/op) layer: 3 op_speed: 100G | errors: FCS=0.0/min (0 total) CRC=6.0/min (12 total) stomped_CRC=6.0/min (12 total)'),
                        details=('Admin state: up \nOperational state: up \nLayer: Layer3 \nOperational speed: 100G \n\n'
                                 'FCS errors: 0.0/min (0 errors in total) \nCRC errors: 6.0/min (12 errors in total) \nStomped CRC errors: 6.0/min (12 errors in total)')),
-                Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
-                Metric('crc_errors', 6.0),
-                Metric('stomped_crc_errors', 6.0, levels=(0.001, 100)),
+                Metric('fcs_errors', 0.0, levels=FCS_LEVELS),
+                Metric('crc_errors', 6.0, levels=CRC_LEVELS),
+                Metric('stomped_crc_errors', 6.0, levels=STOMPED_CRC_LEVELS),
             ),
         ),
         (
@@ -175,9 +180,9 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
                 Result(state=State.OK, summary=('state: up/up (admin/op) layer: 9 op_speed: 10T | errors: FCS=0.0/min (0 total) CRC=0.0/min (0 total) stomped_CRC=0.0/min (0 total)'),
                        details=('Admin state: up \nOperational state: up \nLayer: Layer9 \nOperational speed: 10T \n\n'
                                 'FCS errors: 0.0/min (0 errors in total) \nCRC errors: 0.0/min (0 errors in total) \nStomped CRC errors: 0.0/min (0 errors in total)')),
-                Metric('fcs_errors', 0.0, levels=(0.001, 0.001)),
-                Metric('crc_errors', 0.0),
-                Metric('stomped_crc_errors', 0.0, levels=(0.001, 100)),
+                Metric('fcs_errors', 0.0, levels=FCS_LEVELS),
+                Metric('crc_errors', 0.0, levels=CRC_LEVELS),
+                Metric('stomped_crc_errors', 0.0, levels=STOMPED_CRC_LEVELS),
             ),
         ),
     ],
@@ -188,4 +193,4 @@ def test_check_aci_l1_phys_if(item: str, section: Dict[str, AciL1Interface], exp
             timestamp = int((datetime.now() - timedelta(minutes=2)).timestamp())
             dn = section.get(item).dn
             mock_get.return_value = {f'cisco_aci.{dn}.crc': (timestamp, 0.0), f'cisco_aci.{dn}.fcs': (timestamp, 0.0)}
-        assert tuple(check_aci_l1_phys_if(item, section)) == expected_check_result
+        assert tuple(check_aci_l1_phys_if(item, DEFAULT_ERROR_LEVELS, section)) == expected_check_result
