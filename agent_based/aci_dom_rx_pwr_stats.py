@@ -37,7 +37,7 @@ from .agent_based_api.v1 import (
 )
 
 
-class DomRxPowerStat(NamedTuple):
+class DomPowerStat(NamedTuple):
     dn: str
     alert: str
     status: str
@@ -83,8 +83,8 @@ class DomRxPowerStat(NamedTuple):
         return f'{matches.group("iface")}'
 
     @staticmethod
-    def from_string_table(line: Sequence) -> DomRxPowerStat:
-        return DomRxPowerStat(
+    def from_string_table(line: Sequence) -> DomPowerStat:
+        return DomPowerStat(
             dn=line[0],
             alert=line[1],
             status=line[2],
@@ -96,7 +96,7 @@ class DomRxPowerStat(NamedTuple):
         )
 
 
-def parse_aci_dom_rx_pwr_stats(string_table) -> List[DomRxPowerStat]:
+def parse_aci_dom_rx_pwr_stats(string_table) -> List[DomPowerStat]:
     """
     Exmple output:
         #dn alert status hi_alarm hi_warn lo_alarm lo_warn value
@@ -105,7 +105,7 @@ def parse_aci_dom_rx_pwr_stats(string_table) -> List[DomRxPowerStat]:
         topology/pod-1/node-112/sys/phys-[eth1/12]/phys/domstats/rxpower none none 0.999912 0.000000 -13.098040 -12.097149 -2.814153
     """
     return [
-        DomRxPowerStat.from_string_table(line) for line in string_table
+        DomPowerStat.from_string_table(line) for line in string_table
         if not line[0].startswith('#')
     ]
 
@@ -116,12 +116,12 @@ register.agent_section(
 )
 
 
-def discover_aci_dom_rx_pwr_stats(section: List[DomRxPowerStat]) -> DiscoveryResult:
+def discover_aci_dom_rx_pwr_stats(section: List[DomPowerStat]) -> DiscoveryResult:
     for pwr_stat in section:
         yield Service(item=pwr_stat.interface)
 
 
-def check_aci_dom_rx_pwr_stats(item: str, section: List[DomRxPowerStat]) -> CheckResult:
+def check_aci_dom_rx_pwr_stats(item: str, section: List[DomPowerStat]) -> CheckResult:
     for stat in section:
         if item == stat.interface:
             yield Result(state=stat.state, notice=stat.summary, details=stat.details)

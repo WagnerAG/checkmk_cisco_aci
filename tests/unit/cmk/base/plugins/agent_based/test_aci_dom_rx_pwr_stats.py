@@ -21,12 +21,12 @@ from cmk.base.plugins.agent_based.aci_dom_rx_pwr_stats import (
     parse_aci_dom_rx_pwr_stats,
     discover_aci_dom_rx_pwr_stats,
     check_aci_dom_rx_pwr_stats,
-    DomRxPowerStat,
+    DomPowerStat,
 )
 
 
 SECTION_1: List = [
-    DomRxPowerStat(
+    DomPowerStat(
         dn='topology/pod-1/node-101/sys/phys-[eth1/3]/phys/domstats/rxpwer',
         alert='none',
         status='none',
@@ -39,7 +39,7 @@ SECTION_1: List = [
 ]
 
 SECTION_2: List = [
-    DomRxPowerStat(
+    DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth1/1]/phys/domstats/rxpower',
         alert='none',
         status='none',
@@ -49,7 +49,7 @@ SECTION_2: List = [
         lo_warn=-12.097149,
         value=-2.599533,
     ),
-    DomRxPowerStat(
+    DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth1/11]/phys/domstats/rxpower',
         alert='warn',
         status='bla',
@@ -59,7 +59,7 @@ SECTION_2: List = [
         lo_warn=-12.097149,
         value=0.910695,
     ),
-    DomRxPowerStat(
+    DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys/domstats/rxpower',
         alert='none',
         status='none',
@@ -97,7 +97,7 @@ SECTION_2: List = [
         ),
     ],
 )
-def test_parse_aci_dom_rx_pwr_stats(string_table: List[List[str]], expected_section: List[DomRxPowerStat]) -> None:
+def test_parse_aci_dom_rx_pwr_stats(string_table: List[List[str]], expected_section: List[DomPowerStat]) -> None:
     assert parse_aci_dom_rx_pwr_stats(string_table) == expected_section
 
 
@@ -120,7 +120,7 @@ def test_parse_aci_dom_rx_pwr_stats(string_table: List[List[str]], expected_sect
         ),
     ],
 )
-def test_discover_aci_dom_rx_pwr_stats(section: List[DomRxPowerStat], expected_discovery_result: Tuple) -> None:
+def test_discover_aci_dom_rx_pwr_stats(section: List[DomPowerStat], expected_discovery_result: Tuple) -> None:
     assert tuple(discover_aci_dom_rx_pwr_stats(section)) == expected_discovery_result
 
 
@@ -166,5 +166,5 @@ def test_discover_aci_dom_rx_pwr_stats(section: List[DomRxPowerStat], expected_d
         ),
     ],
 )
-def test_check_aci_dom_rx_pwr_stats(item: str, section: List[DomRxPowerStat], expected_check_result: Tuple) -> None:
+def test_check_aci_dom_rx_pwr_stats(item: str, section: List[DomPowerStat], expected_check_result: Tuple) -> None:
     assert tuple(check_aci_dom_rx_pwr_stats(item, section)) == expected_check_result
