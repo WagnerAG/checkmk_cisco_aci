@@ -264,10 +264,10 @@ def agent_cisco_aci_main(args: Args) -> None:
     all_nodes = get_nodes(apic)
     output_aci_nodes(all_nodes)
 
-    #output_aci_class_attributes(
-    #    apic, title='bgp_peer_entry', aci_class='bgpPeerEntry',
-    #    fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
-    #)
+    output_aci_class_attributes(
+        apic, title='bgp_peer_entry', aci_class='bgpPeerEntry',
+        fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
+    )
 
     output_iface_stats(
         apic, args.only_iface_admin_up,
