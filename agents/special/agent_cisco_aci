@@ -542,7 +542,7 @@ def output_iface_stats(apic: Apic, only_iface_admin_up: bool, aci_nodes: Dict[st
 
 
 def output_dom_rx_pwr_stats(apic: Apic, aci_nodes: Dict[str, str], dns_domain: str):
-    section_name: str = 'dom_rx_pwr_stats'
+    section_name: str = 'aci_dom_rx_pwr_stats'
     LOGGING.info(f'fetch and write {section_name} section')
 
     pwr_stats_by_node = get_pwr_stats(apic, aci_nodes)
