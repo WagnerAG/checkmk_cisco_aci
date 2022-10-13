@@ -17,11 +17,15 @@ Nagios CMK Datasource Programm to check Cisco ACI
 
 Authors:    Samuel Zehnder <zehnder@netcloud.ch>
             Roger Ellenberger <roger.ellenberger@wagner.ch>
-Version:    0.6
+Version:    0.7
 
 """
 
-from typing import Dict, List, Optional, Sequence, Tuple
+from collections import defaultdict
+import itertools
+import threading
+import concurrent.futures
+from typing import Dict, List, Set, Optional, Sequence, Tuple, NamedTuple
 from dataclasses import dataclass
 import logging
 
@@ -29,8 +33,13 @@ import time
 import json
 from urllib.parse import urljoin
 import requests
+from os.path import join
 
-from cmk.special_agents.utils.agent_common import SectionWriter, special_agent_main
+from cmk.special_agents.utils.agent_common import (
+    SectionWriter,
+    ConditionalPiggybackSection,
+    special_agent_main
+)
 from cmk.special_agents.utils.argument_parsing import Args, create_default_argument_parser
 
 
@@ -41,7 +50,7 @@ requests.packages.urllib3.disable_warnings()
 MAX_RETRIES: str = 3
 SLEEP_SECONDS: str = 3
 
-VERSION: float = 0.6
+VERSION: float = 0.7
 NAME: str = "agent_cisco_aci"
 
 
@@ -67,6 +76,10 @@ class AciNode:
         node_info = tuple(map(str.strip, node_info))  # sanitize strings
 
         return node_info
+
+    @property
+    def node_str(self):
+        return f'node-{self.node_id}'
 
 
 class Apic:
@@ -106,13 +119,13 @@ class Apic:
 
         counter = 1
         s = requests.Session()
-        response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.000)
+        response = s.post(url + "aaaLogin.json", json=creds, verify=False, timeout=2.0)
 
         while response.status_code == requests.codes.unauthorized:
             if counter > MAX_RETRIES:
                 raise requests.HTTPError(json.loads(response.text)["imdata"][0]["error"]["attributes"]["text"])
             time.sleep(SLEEP_SECONDS)
-            response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.000)
+            response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.0)
             counter += 1
 
         response.raise_for_status()
@@ -137,6 +150,22 @@ class Apic:
         return [item[aci_class]['attributes'] for item in result]
 
 
+thread_local = threading.local()
+
+
+def get_session(apic: Apic) -> requests.Session:
+    if not hasattr(thread_local, "session"):
+        thread_local.session = requests.Session()
+        thread_local.session.cookies = apic.session.cookies.copy()
+    return thread_local.session
+
+
+def get_interface_details(dn: str, apic: Apic):
+    with get_session(apic).get(urljoin(apic.url, f'node/mo/{dn}/phys.json'), verify=False) as response:
+        response.raise_for_status()
+        return response.json()['imdata'][0]['ethpmPhysIf']['attributes']
+
+
 def get_aci_health(apic: Apic):
     """Get Fabric Health Score"""
 
@@ -146,9 +175,9 @@ def get_aci_health(apic: Apic):
     return int(health_score)
 
 
-def get_nodes(session, url) -> Dict:
-    response = session.get(url + 'node/class/topSystem.json?query-target=self&rsp-subtree=children&'
-                           'rsp-subtree-class=eqptCh&rsp-subtree-include=health')
+def get_nodes(apic: Apic) -> Dict:
+    response = apic.session.get(apic.url + 'node/class/topSystem.json?query-target=self&rsp-subtree=children&'
+                                'rsp-subtree-class=eqptCh&rsp-subtree-include=health')
     response.raise_for_status()
     nodes = response.json()['imdata']
     nodelist = dict(spine=[], leaf=[], controller=[])
@@ -169,7 +198,7 @@ def get_nodes(session, url) -> Dict:
                 aci_node.descr = child['eqptCh']['attributes']['descr']
                 aci_node.model = child['eqptCh']['attributes']['model']
 
-        nodelist[aci_node.role].append(aci_node.build_node_output())
+        nodelist[aci_node.role].append(aci_node)
 
     return nodelist
 
@@ -210,6 +239,11 @@ def get_json_section(session, base_url: str, path: str) -> Dict:
     return response.json()['imdata']
 
 
+def _transform_nodes_to_list(aci_nodes: Dict) -> List:
+    res = list(itertools.chain(*aci_nodes.values()))
+    return res
+
+
 def agent_cisco_aci_main(args: Args) -> None:
     """Establish a connection to ACI controller and get version, health, and node information"""
 
@@ -227,23 +261,28 @@ def agent_cisco_aci_main(args: Args) -> None:
     output_aci_health(apic)
 
     LOGGING.info("fetch and write node info..")
-    output_aci_nodes(url, session)
+    all_nodes = get_nodes(apic)
+    output_aci_nodes(all_nodes)
 
     output_aci_class_attributes(
         apic, title='bgp_peer_entry', aci_class='bgpPeerEntry',
         fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
     )
 
+    output_iface_stats(
+        apic, args.only_iface_admin_up,
+        aci_nodes=_transform_nodes_to_list(all_nodes),
+        dns_domain=args.dns_domain
+    )
+
     LOGGING.info("all done. cheers.")
 
 
-def output_aci_nodes(url, session):
-    all_nodes = get_nodes(session, url)
-
+def output_aci_nodes(all_nodes: Dict[str, List[AciNode]]):
     for node_type, nodes in all_nodes.items():
         with SectionWriter(f'aci_{node_type}', separator=' ') as writer:
             for node in nodes:
-                writer.append(' '.join(node))
+                writer.append(' '.join(node.build_node_output()))
 
 
 def output_aci_health(apic):
@@ -285,12 +324,172 @@ def prepare_dict_for_writer(result_obj: Dict, fields: Tuple) -> str:
     return ' '.join(selected_data)
 
 
+def filter_stats(stats: List, aci_class: str, phys_iface_dn: Set):
+    return {stats['dn']: stats for stats in stats if _strip_dn(stats['dn'], aci_class) in phys_iface_dn}
+
+
+def _strip_dn(dn: str, aci_class: str) -> str:
+    return dn.replace(aci_class, '').strip('/')
+
+
+class PhysicalInterfaces(NamedTuple):
+    phys_iface: List
+    ether_stats_filtered: Dict
+    dot3_stats_filtered: Dict
+    phys_iface_details: Dict
+
+    @staticmethod
+    def _build_dn(dn: str, aci_class: str) -> str:
+        return join(dn, aci_class)
+
+    def get_ether_stats(self, dn: str) -> Dict:
+        dn = self._build_dn(dn, 'dbgEtherStats')
+        return self.ether_stats_filtered.get(dn, {})
+
+    def get_dot3_stats(self, dn: str) -> Dict:
+        dn = self._build_dn(dn, 'dbgDot3Stats')
+        return self.dot3_stats_filtered.get(dn, {})
+
+    def get_phys_iface(self, dn: str) -> Dict:
+        dn = self._build_dn(dn, 'phys')
+        return self.phys_iface_details.get(dn, {})
+
+
+class InterfaceDetails(NamedTuple):
+    dn: str
+    id: str
+    admin_state: str
+    layer: str
+    crc_errors: str
+    fcs_errors: str
+    op_state: str
+    op_speed: str
+
+    def get_interface_details(interface: Dict, data: PhysicalInterfaces):
+        iface_dn: str = interface['dn']
+        return InterfaceDetails(
+            dn=iface_dn,
+            id=interface['id'],
+            admin_state=interface['adminSt'],
+            layer=interface['layer'],
+            crc_errors=data.get_ether_stats(iface_dn).get('cRCAlignErrors'),
+            fcs_errors=data.get_dot3_stats(iface_dn).get('fCSErrors'),
+            op_state=data.get_phys_iface(iface_dn).get('operSt'),
+            op_speed=data.get_phys_iface(iface_dn).get('operSpeed'),
+        )
+
+    @staticmethod
+    def get_header():
+        return '#' + (' '.join([
+            'dn',
+            'id',
+            'admin_state',
+            'layer',
+            'crc_errors',
+            'fcs_errors',
+            'op_state',
+            'op_speed',
+        ]))
+
+    def __repr__(self):
+        return ' '.join(str(s) for s in [
+            self.dn,
+            self.id,
+            self.admin_state,
+            self.layer,
+            self.crc_errors,
+            self.fcs_errors,
+            self.op_state,
+            self.op_speed,
+        ])
+
+    @property
+    def node_str(self):
+        return self.dn.split('/')[2]
+
+
+def get_phys_iface(apic: Apic, only_iface_admin_up: bool, aci_nodes: List[AciNode]):
+    raw_data = __collect_data(apic, only_iface_admin_up)
+    preprocessed_data = __merge_data(raw_data)
+    grouped_data = __group_interface_by_host(preprocessed_data, aci_nodes)
+
+    return grouped_data
+
+
+def __collect_data(apic: Apic, only_iface_admin_up: bool):
+    phys_iface: List = apic.get_data_from_class(aci_class='l1PhysIf')
+
+    if only_iface_admin_up:
+        phys_iface = [iface for iface in phys_iface if (iface['adminSt'] == 'up')]
+
+    ether_stats: List = apic.get_data_from_class(aci_class='rmonEtherStats')
+    dot3_stats: List = apic.get_data_from_class(aci_class='rmonDot3Stats')
+
+    phys_iface_dn: Set = {iface['dn'] for iface in phys_iface}
+    ether_stats_filtered: Dict = filter_stats(ether_stats, 'dbgEtherStats', phys_iface_dn)
+    dot3_stats_filtered: Dict = filter_stats(dot3_stats, 'dbgDot3Stats', phys_iface_dn)
+
+    phys_iface_details = __collect_phys_iface_details(apic, phys_iface_dn)
+
+    return PhysicalInterfaces(phys_iface, ether_stats_filtered, dot3_stats_filtered, phys_iface_details)
+
+
+def __collect_phys_iface_details(apic: Apic, phys_iface_dn: Set):
+    """collected phys interface details using threaded parallel calls"""
+    def calc_parallel_threads(interface_count: int, div_factor: int = 8, max_threads: int = 50) -> int:
+        candidate = interface_count // div_factor
+        return candidate if candidate < max_threads else max_threads
+
+    def get_interface_details_wrapper(phys_iface_dn: str, apic: Apic = apic):
+        return get_interface_details(phys_iface_dn, apic)
+
+    worker_threads: int = calc_parallel_threads(interface_count=len(phys_iface_dn))
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=worker_threads) as executor:
+        return {iface['dn']: iface for iface in list(executor.map(get_interface_details_wrapper, phys_iface_dn))}
+
+
+def __merge_data(data: PhysicalInterfaces) -> List[InterfaceDetails]:
+    merged_data = []
+
+    for iface in data.phys_iface:
+        merged_data.append(InterfaceDetails.get_interface_details(iface, data))
+
+    return merged_data
+
+
+def __group_interface_by_host(iface_stats: List[InterfaceDetails], aci_nodes: List[AciNode]):
+    # prepare node list for fast access
+    node_lookup_table = {node.node_str: node.name for node in aci_nodes}
+    grouped_interfaces = defaultdict(list)
+
+    for iface in iface_stats:
+        grouped_interfaces[node_lookup_table[iface.node_str]].append(iface)
+
+    return grouped_interfaces
+
+
+def output_iface_stats(apic: Apic, only_iface_admin_up: bool, aci_nodes: List[AciNode], dns_domain: str):
+    iface_stats: Dict[str, List] = get_phys_iface(apic, only_iface_admin_up, aci_nodes)
+
+    for node, iface in iface_stats.items():
+        with ConditionalPiggybackSection(f'{node}.{dns_domain}' if dns_domain else node):
+            with SectionWriter('aci_l1_phys_if', separator=' ') as writer:
+                writer.append(InterfaceDetails.get_header())
+                for line in iface:
+                    writer.append(line)
+
+
 def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
     parser = create_default_argument_parser(description=__doc__)
     parser.add_argument('-H', '--host', type=str, required=True, metavar="HOST", nargs='+',
                         help='APIC IP, multiple IPs (Ctrls) accepted')
+    parser.add_argument('-D', '--dns-domain', type=str, required=False, metavar="DOMAIN",
+                        help='DNS domain of nodes (used to correctly name piggyback hosts)')
     parser.add_argument('-u', '--user', type=str, required=True, metavar="USER", help='ACI Username')
     parser.add_argument('-p', '--password', type=str, required=True, metavar="PASSWORD", help='ACI Password')
+    parser.add_argument('--only-iface-admin-up', action="store_true", required=False, default=False,
+                        help='Only monitor interfaces in admin state "up"')
 
     return parser.parse_args(argv)
 

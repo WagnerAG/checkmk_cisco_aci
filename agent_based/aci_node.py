@@ -14,7 +14,6 @@
 
 """
 Check_MK Checks to use with agent_cisco_aci Datasource
-Place into local check-mk checks directory, e.g ~/local/share/check_mk/checks in OMD
 
 Authors:    Samuel Zehnder, zehnder@netcloud.ch
             Roger Ellenberger, roger.ellenberger@wagner.ch
