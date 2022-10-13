@@ -187,7 +187,7 @@ class InterfaceDetails(NamedTuple):
     op_state: str
     op_speed: str
 
-    def get_interface_details(interface: Dict, data: PhysicalInterfaces):
+    def get_interface_details(interface: Dict, data: PhysicalInterfaces) -> 'InterfaceDetails':
         iface_dn: str = interface['dn']
         return InterfaceDetails(
             dn=iface_dn,
@@ -223,6 +223,59 @@ class InterfaceDetails(NamedTuple):
             self.fcs_errors,
             self.op_state,
             self.op_speed,
+        ])
+
+    @property
+    def node_str(self):
+        return self.dn.split('/')[2]
+
+
+class DomRxPwrStats(NamedTuple):
+    dn: str
+    alert: str
+    status: str
+    hi_alarm: str
+    hi_warn: str
+    lo_alarm: str
+    lo_warn: str
+    value: str
+
+    @staticmethod
+    def get_pwr_stats(data: Dict) -> 'DomRxPwrStats':
+        return DomRxPwrStats(
+            dn=data.get('dn', 'n/a'),
+            alert=data.get('alert', 'n/a'),
+            status='none' if data.get('status', 'n/a') == '' else data.get('status', 'n/a'),
+            hi_alarm=data.get('hiAlarm', 'n/a'),
+            hi_warn=data.get('hiWarn', 'n/a'),
+            lo_alarm=data.get('loAlarm', 'n/a'),
+            lo_warn=data.get('loWarn', 'n/a'),
+            value=data.get('value', 'n/a'),
+        )
+
+    @staticmethod
+    def get_header():
+        return '#' + (' '.join([
+            'dn',
+            'alert',
+            'status',
+            'hi_alarm',
+            'hi_warn',
+            'lo_alarm',
+            'lo_warn',
+            'value',
+        ]))
+
+    def __repr__(self):
+        return ' '.join(str(s) for s in [
+            self.dn,
+            self.alert,
+            self.status,
+            self.hi_alarm,
+            self.hi_warn,
+            self.lo_alarm,
+            self.lo_warn,
+            self.value,
         ])
 
     @property
@@ -379,6 +432,19 @@ def __group_interface_by_host(iface_stats: List[InterfaceDetails], aci_nodes: Di
     return dict(grouped_interfaces)
 
 
+def get_pwr_stats(apic, aci_nodes):
+    # fetch data
+    results = apic.get_data_from_class('ethpmDOMRxPwrStats')
+
+    # transform
+    pwr_stats_by_node = defaultdict(list)
+    for res in results:
+        stat = DomRxPwrStats.get_pwr_stats(res)
+        pwr_stats_by_node[aci_nodes[stat.node_str]].append(stat)
+
+    return pwr_stats_by_node
+
+
 ###############################################################################
 # General helper functions                                                    #
 ###############################################################################
@@ -455,14 +521,32 @@ def output_aci_class_attributes(apic: Apic, title: str, aci_class: str, fields: 
 
 
 def output_iface_stats(apic: Apic, only_iface_admin_up: bool, aci_nodes: Dict[str, str], dns_domain: str):
+    section_name: str = 'aci_l1_phys_if'
+    LOGGING.info(f'fetch and write {section_name} section')
+
     iface_stats: Dict[str, List] = get_phys_iface(apic, only_iface_admin_up, aci_nodes)
 
     for node, iface in iface_stats.items():
         with ConditionalPiggybackSection(f'{node}.{dns_domain}' if dns_domain else node):
-            with SectionWriter('aci_l1_phys_if', separator=' ') as writer:
+            with SectionWriter(section_name, separator=' ') as writer:
                 writer.append(InterfaceDetails.get_header())
                 for line in iface:
                     writer.append(line)
+
+
+def output_dom_rx_pwr_stats(apic: Apic, aci_nodes: Dict[str, str], dns_domain: str):
+    section_name: str = 'dom_rx_pwr_stats'
+    LOGGING.info(f'fetch and write {section_name} section')
+
+    pwr_stats_by_node = get_pwr_stats(apic, aci_nodes)
+
+    # print
+    for node, pwr_stats in pwr_stats_by_node.items():
+        with ConditionalPiggybackSection(f'{node}.{dns_domain}' if dns_domain else node):
+            with SectionWriter(section_name, separator=' ') as writer:
+                writer.append(DomRxPwrStats.get_header())
+                for stat in pwr_stats:
+                    writer.append(stat)
 
 
 ###############################################################################
@@ -496,6 +580,12 @@ def agent_cisco_aci_main(args: Args) -> None:
 
     output_iface_stats(
         apic, args.only_iface_admin_up,
+        aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
+        dns_domain=args.dns_domain,
+    )
+
+    output_dom_rx_pwr_stats(
+        apic,
         aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
         dns_domain=args.dns_domain,
     )
