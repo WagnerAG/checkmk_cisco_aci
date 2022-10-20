@@ -22,6 +22,7 @@ Version:    0.7
 """
 
 from collections import defaultdict
+from enum import Enum, unique
 import itertools
 import threading
 import concurrent.futures
@@ -230,8 +231,14 @@ class InterfaceDetails(NamedTuple):
         return self.dn.split('/')[2]
 
 
-class DomRxPwrStats(NamedTuple):
-    dn: str
+@unique
+class PwrStatType(Enum):
+    RX: str = 'rx'
+    TX: str = 'tx'
+
+
+class DomPwrStatsValues(NamedTuple):
+    type: PwrStatType
     alert: str
     status: str
     hi_alarm: str
@@ -241,9 +248,9 @@ class DomRxPwrStats(NamedTuple):
     value: str
 
     @staticmethod
-    def get_pwr_stats(data: Dict) -> 'DomRxPwrStats':
-        return DomRxPwrStats(
-            dn=data.get('dn', 'n/a'),
+    def get_pwr_stats(data: Dict, stats_type: PwrStatType) -> 'DomPwrStatsValues':
+        return DomPwrStatsValues(
+            type=stats_type.value,
             alert=data.get('alert', 'n/a'),
             status='none' if data.get('status', 'n/a') == '' else data.get('status', 'n/a'),
             hi_alarm=data.get('hiAlarm', 'n/a'),
@@ -253,10 +260,44 @@ class DomRxPwrStats(NamedTuple):
             value=data.get('value', 'n/a'),
         )
 
+    def __repr__(self):
+        return ' '.join(str(s) for s in [
+            self.type,
+            self.alert,
+            self.status,
+            self.hi_alarm,
+            self.hi_warn,
+            self.lo_alarm,
+            self.lo_warn,
+            self.value,
+        ])
+
+
+class DomPwrStats(NamedTuple):
+    dn: str
+    rx: DomPwrStatsValues
+    tx: DomPwrStatsValues
+
+    @staticmethod
+    def get_pwr_stats(rx_data: Dict, tx_stats: Dict) -> 'DomPwrStats':
+        """builds a DomPwrStats object with a given element form """
+        rx_dn: str = rx_data.get('dn', 'n/a')
+        tx_dn: str = rx_dn.replace('rxpower', 'txpower')
+        iface_dn: str = rx_dn.replace('/domstats/rxpower', '')
+
+        tx_data: Dict = tx_stats.get(tx_dn, {})
+
+        return DomPwrStats(
+            dn=iface_dn,
+            rx=DomPwrStatsValues.get_pwr_stats(rx_data, stats_type=PwrStatType.RX),
+            tx=DomPwrStatsValues.get_pwr_stats(tx_data, stats_type=PwrStatType.TX),
+        )
+
     @staticmethod
     def get_header():
         return '#' + (' '.join([
-            'dn',
+            'iface_dn',
+            'stats_type',
             'alert',
             'status',
             'hi_alarm',
@@ -267,16 +308,8 @@ class DomRxPwrStats(NamedTuple):
         ]))
 
     def __repr__(self):
-        return ' '.join(str(s) for s in [
-            self.dn,
-            self.alert,
-            self.status,
-            self.hi_alarm,
-            self.hi_warn,
-            self.lo_alarm,
-            self.lo_warn,
-            self.value,
-        ])
+        return (f'{self.dn} {self.rx}\n'
+                f'{self.dn} {self.tx}')
 
     @property
     def node_str(self):
@@ -432,14 +465,17 @@ def __group_interface_by_host(iface_stats: List[InterfaceDetails], aci_nodes: Di
     return dict(grouped_interfaces)
 
 
-def get_pwr_stats(apic, aci_nodes):
+def get_pwr_stats(apic: Apic, aci_nodes: Dict):
     # fetch data
-    results = apic.get_data_from_class('ethpmDOMRxPwrStats')
+    rx_pwr_stats = apic.get_data_from_class('ethpmDOMRxPwrStats')
+    tx_pwr_stats = apic.get_data_from_class('ethpmDOMTxPwrStats')
+
+    tx_pwr_stats_mapping = {tx['dn']: tx for tx in tx_pwr_stats}
 
     # transform
     pwr_stats_by_node = defaultdict(list)
-    for res in results:
-        stat = DomRxPwrStats.get_pwr_stats(res)
+    for rx in rx_pwr_stats:
+        stat = DomPwrStats.get_pwr_stats(rx, tx_pwr_stats_mapping)
         pwr_stats_by_node[aci_nodes[stat.node_str]].append(stat)
 
     return pwr_stats_by_node
@@ -542,7 +578,7 @@ def output_iface_stats(apic: Apic, only_iface_admin_up: bool, aci_nodes: Dict[st
 
 
 def output_dom_rx_pwr_stats(apic: Apic, aci_nodes: Dict[str, str], dns_domain: str):
-    section_name: str = 'aci_dom_rx_pwr_stats'
+    section_name: str = 'aci_dom_pwr_stats'
     LOGGING.info(f'fetch and write {section_name} section')
 
     pwr_stats_by_node = get_pwr_stats(apic, aci_nodes)
@@ -550,7 +586,7 @@ def output_dom_rx_pwr_stats(apic: Apic, aci_nodes: Dict[str, str], dns_domain: s
     for node, pwr_stats in pwr_stats_by_node.items():
         with ConditionalPiggybackSection(f'{node}.{dns_domain}' if dns_domain else node):
             with SectionWriter(section_name, separator=' ') as writer:
-                writer.append(DomRxPwrStats.get_header())
+                writer.append(DomPwrStats.get_header())
                 for stat in pwr_stats:
                     writer.append(stat)
 
