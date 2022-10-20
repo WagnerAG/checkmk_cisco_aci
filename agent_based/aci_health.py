@@ -22,7 +22,7 @@ Version:    0.6
 """
 
 from __future__ import annotations
-from typing import NamedTuple
+from typing import Dict, NamedTuple
 
 from .agent_based_api.v1.type_defs import (
     CheckResult,
@@ -30,11 +30,15 @@ from .agent_based_api.v1.type_defs import (
 )
 from .agent_based_api.v1 import (
     register,
+    check_levels,
     Metric,
     Result,
     Service,
+    State,
 )
-from .aci_general import ACIHealthLevels, get_state_by_health_score
+
+
+DEFAULT_HEALTH_LEVELS: Dict = {'health_levels': (95, 85)}
 
 
 class ACIHealthValues(NamedTuple):
@@ -75,16 +79,20 @@ def discover_aci_health(section: ACIHealthValues) -> DiscoveryResult:
     yield Service()
 
 
-def check_aci_health(section: ACIHealthValues) -> CheckResult:
+def check_aci_health(params: Dict, section: ACIHealthValues) -> CheckResult:
+    yield from check_levels(
+        section.health,
+        levels_lower=params.get('health_levels'),
+        boundaries=(0, 100),
+        metric_name='health',
+        label='Fabric Health Score',
+    )
+
     yield Result(
-        state=get_state_by_health_score(section.health),
-        summary=f"Fabric Health Score: {section.health}, "
-                f"Fabric-wide Faults (crit/warn/maj/min): "
+        state=State.OK,
+        summary=f"Fabric-wide Faults (crit/warn/maj/min): "
                 f"{section.fcrit}/{section.fwarn}/{section.fmaj}/{section.fmin}")
 
-    yield Metric("health", section.health,
-                 levels=(ACIHealthLevels.WARN.value, ACIHealthLevels.CRIT.value),
-                 boundaries=(0, 100))
     yield Metric("fcrit", section.fcrit)
     yield Metric("fwarn", section.fwarn)
     yield Metric("fmaj", section.fmaj)
@@ -96,4 +104,6 @@ register.check_plugin(
     service_name='Fabric Health Score',
     discovery_function=discover_aci_health,
     check_function=check_aci_health,
+    check_ruleset_name='aci_health_levels',
+    check_default_parameters=DEFAULT_HEALTH_LEVELS,
 )
