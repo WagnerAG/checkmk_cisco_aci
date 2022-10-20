@@ -17,7 +17,7 @@ from typing import Tuple, List
 import pytest
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Service, Metric
-from cmk.base.plugins.agent_based.aci_dom_rx_pwr_stats import (
+from cmk.base.plugins.agent_based.aci_dom_pwr_stats import (
     parse_aci_dom_rx_pwr_stats,
     discover_aci_dom_rx_pwr_stats,
     check_aci_dom_rx_pwr_stats,
