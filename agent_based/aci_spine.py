@@ -26,6 +26,7 @@ from .aci_node import (
     parse_aci_node,
     discover_aci_node,
     check_aci_node,
+    DEFAULT_HEALTH_LEVELS,
 )
 
 
@@ -40,4 +41,6 @@ register.check_plugin(
     service_name='Spine %s',
     discovery_function=discover_aci_node,
     check_function=check_aci_node,
+    check_ruleset_name='aci_node_levels',
+    check_default_parameters=DEFAULT_HEALTH_LEVELS,
 )
