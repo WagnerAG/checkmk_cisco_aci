@@ -21,11 +21,12 @@ from cmk.base.plugins.agent_based.aci_node import (
     parse_aci_node,
     check_aci_node,
     ACINode,
+    DEFAULT_HEALTH_LEVELS,
 )
 
 
 ACI_TEST_NODES: List[ACINode] = [
-    ACINode(nnid='101', name='spine101', status='in-service', health=84, serial='FEO33101F5G', model='N9K-C9336PQ'),
+    ACINode(nnid='101', name='spine101', status='downgraded', health=84, serial='FEO33101F5G', model='N9K-C9336PQ'),
     ACINode(nnid='201', name='spine201', status='in-service', health=95, serial='FEO33101F5F', model='N9K-C9336PQ'),
     ACINode(nnid='202', name='spine202', status='in-service', health=94, serial='FEO33101F5E', model='N9K-C9336PQ'),
     ACINode(nnid='203', name='spine203', status='in-service', health=85, serial='FEO33101F5B', model='N9K-C9336PQ'),
@@ -48,7 +49,7 @@ ACI_TEST_NODES: List[ACINode] = [
         ),
         (
             [
-                ['spine', '101', 'spine101', 'in-service', '84', 'FEO33101F5G', 'N9K-C9336PQ',
+                ['spine', '101', 'spine101', 'downgraded', '84', 'FEO33101F5G', 'N9K-C9336PQ',
                  'Nexus9000', '1-Slot', 'Spine Chassis'],
                 ['spine', '201', 'spine201', 'in-service', '95', 'FEO33101F5F', 'N9K-C9336PQ',
                  'Nexus9000', '1-Slot', 'Spine Chassis'],
@@ -90,32 +91,36 @@ def test_parse_aci_node(string_table: List[List[str]], expected_section: List[AC
             '201',
             ACI_TEST_NODES,
             (
-                Result(state=State.OK, summary='spine201 is in-service, Health:95, Model: N9K-C9336PQ, Serial FEO33101F5F'),
-                Metric("health", 95.0, levels=(95.0, 85.0), boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary='Node Health Score: 95.00'),
+                Metric('health', 95.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary='spine201 is in-service, Model: N9K-C9336PQ, Serial: FEO33101F5F'),
             ),
         ),
         (
             '202',
             ACI_TEST_NODES,
             (
-                Result(state=State.WARN, summary='spine202 is in-service, Health:94, Model: N9K-C9336PQ, Serial FEO33101F5E'),
-                Metric("health", 94.0, levels=(95.0, 85.0), boundaries=(0.0, 100.0)),
+                Result(state=State.WARN, summary='Node Health Score: 94.00 (warn/crit below 95.00/85.00)'),
+                Metric('health', 94.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary='spine202 is in-service, Model: N9K-C9336PQ, Serial: FEO33101F5E'),
             ),
         ),
         (
             '203',
             ACI_TEST_NODES,
             (
-                Result(state=State.WARN, summary='spine203 is in-service, Health:85, Model: N9K-C9336PQ, Serial FEO33101F5B'),
-                Metric("health", 85.0, levels=(95.0, 85.0), boundaries=(0.0, 100.0)),
+                Result(state=State.WARN, summary='Node Health Score: 85.00 (warn/crit below 95.00/85.00)'),
+                Metric('health', 85.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary='spine203 is in-service, Model: N9K-C9336PQ, Serial: FEO33101F5B'),
             ),
         ),
         (
             '101',
             ACI_TEST_NODES,
             (
-                Result(state=State.CRIT, summary='spine101 is in-service, Health:84, Model: N9K-C9336PQ, Serial FEO33101F5G'),
-                Metric("health", 84.0, levels=(95.0, 85.0), boundaries=(0.0, 100.0)),
+                Result(state=State.CRIT, summary='Node Health Score: 84.00 (warn/crit below 95.00/85.00)'),
+                Metric('health', 84.0, boundaries=(0.0, 100.0)),
+                Result(state=State.CRIT, summary='spine101 is downgraded, Model: N9K-C9336PQ, Serial: FEO33101F5G'),
             ),
         ),
         (
@@ -128,4 +133,4 @@ def test_parse_aci_node(string_table: List[List[str]], expected_section: List[AC
     ],
 )
 def test_check_aci_node(item: str, section: List[ACINode], expected_check_result: Tuple) -> None:
-    assert tuple(check_aci_node(item, section)) == expected_check_result
+    assert tuple(check_aci_node(item, DEFAULT_HEALTH_LEVELS, section)) == expected_check_result

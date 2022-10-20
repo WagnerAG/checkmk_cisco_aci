@@ -22,19 +22,22 @@ Version:    0.6
 """
 
 from __future__ import annotations
-from typing import NamedTuple, List
+from typing import Dict, NamedTuple, List
 
 from .agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
 from .agent_based_api.v1 import (
-    Metric,
+    check_levels,
     Result,
     Service,
     State,
 )
-from .aci_general import ACIHealthLevels, get_state_by_health_score
+
+
+DEFAULT_HEALTH_LEVELS: Dict = {'health_levels': (95, 85)}
+HEALTHY_NODE_STATUS: str = "in-service"
 
 
 class ACINode(NamedTuple):
@@ -69,17 +72,23 @@ def discover_aci_node(section: List[ACINode]) -> DiscoveryResult:
         yield Service(item=node.nnid)
 
 
-def check_aci_node(item: str, section: List[ACINode]) -> CheckResult:
+def check_aci_node(item: str, params: Dict, section: List[ACINode]) -> CheckResult:
     for node in section:
         if node.nnid == item:
-            yield Result(
-                state=get_state_by_health_score(node.health),
-                summary=f"{node.name} is {node.status}, Health:{node.health}, "
-                        f"Model: {node.model}, Serial {node.serial}"
+            yield from check_levels(
+                node.health,
+                levels_lower=params.get('health_levels'),
+                boundaries=(0, 100),
+                metric_name='health',
+                label='Node Health Score',
             )
-            yield Metric("health", node.health,
-                         levels=(ACIHealthLevels.WARN.value, ACIHealthLevels.CRIT.value),
-                         boundaries=(0, 100))
+
+            yield Result(
+                state=State.OK if node.status == HEALTHY_NODE_STATUS else State.CRIT,
+                summary=f"{node.name} is {node.status}, "
+                        f"Model: {node.model}, Serial: {node.serial}"
+            )
+
             break
     else:
         yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
