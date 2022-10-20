@@ -9,6 +9,7 @@
             'aci_dom_pwr_stats.py',
             'aci_general.py',
             'aci_health.py',
+            'aci_l1_phys_if.py',
             'aci_leaf.py',
             'aci_node.py',
             'aci_spine.py',
@@ -30,7 +31,7 @@
     },
     'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
-    'version': '0.7.3',
+    'version': '0.7.4',
     'version.min_required': '2.0.0',
     'version.packaged': '2.0.0p27'
 }
