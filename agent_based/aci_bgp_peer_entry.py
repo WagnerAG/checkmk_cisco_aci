@@ -15,8 +15,7 @@
 """
 Check_MK Checks to use with agent_cisco_aci Datasource
 
-Authors:    Samuel Zehnder, zehnder@netcloud.ch
-            Roger Ellenberger, roger.ellenberger@wagner.ch
+Authors:    Roger Ellenberger, roger.ellenberger@wagner.ch
 Version:    0.7
 
 """

@@ -6,12 +6,15 @@
         'agent_based': [
             'aci_bgp_peer_entry.py',
             'aci_controller.py',
+            'aci_dom_pwr_stats.py',
             'aci_general.py',
             'aci_health.py',
+            'aci_l1_phys_if.py',
             'aci_leaf.py',
             'aci_node.py',
             'aci_spine.py',
-            'aci_version.py'],
+            'aci_version.py'
+        ],
         'agents': ['special/agent_cisco_aci'],
         'checkman': [],
         'checks': ['cisco_aci'],
@@ -19,11 +22,17 @@
         'inventory': [],
         'notifications': [],
         'pnp-templates': [],
-        'web': ['plugins/wato/cisco_aci.py']
+        'web': [
+            'plugins/metrics/cisco_aci_metrics.py',
+            'plugins/perfometer/cisco_aci_perfometer.py',
+            'plugins/wato/cisco_aci_check_parameters.py',
+            'plugins/wato/cisco_aci_special_agent.py'
+        ]
     },
     'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
-    'version': '0.7.2',
+    'version': '0.7.4',
     'version.min_required': '2.0.0',
     'version.packaged': '2.0.0p27'
 }
+
