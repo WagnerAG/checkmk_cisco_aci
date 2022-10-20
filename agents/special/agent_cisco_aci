@@ -262,7 +262,6 @@ class DomPwrStatsValues(NamedTuple):
 
     def __repr__(self):
         return ' '.join(str(s) for s in [
-            self.type,
             self.alert,
             self.status,
             self.hi_alarm,
@@ -297,19 +296,24 @@ class DomPwrStats(NamedTuple):
     def get_header():
         return '#' + (' '.join([
             'iface_dn',
-            'stats_type',
-            'alert',
-            'status',
-            'hi_alarm',
-            'hi_warn',
-            'lo_alarm',
-            'lo_warn',
-            'value',
+            'rx_alert',
+            'rx_status',
+            'rx_hi_alarm',
+            'rx_hi_warn',
+            'rx_lo_alarm',
+            'rx_lo_warn',
+            'rx_value',
+            'tx_alert',
+            'tx_status',
+            'tx_hi_alarm',
+            'tx_hi_warn',
+            'tx_lo_alarm',
+            'tx_lo_warn',
+            'tx_value',
         ]))
 
     def __repr__(self):
-        return (f'{self.dn} {self.rx}\n'
-                f'{self.dn} {self.tx}')
+        return (f'{self.dn} {self.rx} {self.tx}')
 
     @property
     def node_str(self):
