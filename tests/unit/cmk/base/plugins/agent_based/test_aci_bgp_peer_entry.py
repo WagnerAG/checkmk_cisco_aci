@@ -126,13 +126,8 @@ def test_parse_aci_bgp_peer_entry(string_table: List[List[str]], expected_sectio
             (
                 Result(
                     state=State.OK,
-                    summary=(
-                        'state=established type=ibgp'
-                        'remote=10.77.128.64:49916 '
-                        'local=10.77.128.65:179 '
-                        'connAttempts=na '
-                        'connDrop=0 connEst=1'
-                    )
+                    summary='state: established, type: ibgp, remote: 10.77.128.64:49916, local: 10.77.128.65:179',
+                    details='state: established\ntype: ibgp\nremote: 10.77.128.64:49916\nlocal: 10.77.128.65:179\nconnAttempts: na\nconnDrop: 0\nconnEst: 1'
                 ),
             ),
         ),
@@ -154,13 +149,8 @@ def test_parse_aci_bgp_peer_entry(string_table: List[List[str]], expected_sectio
             (
                 Result(
                     state=State.WARN,
-                    summary=(
-                        'state=idle type=ebgp'
-                        'remote=10.79.7.34:unspecified '
-                        'local=0.0.0.0:unspecified '
-                        'connAttempts=1144 '
-                        'connDrop=4 connEst=4'
-                    )
+                    summary='state: idle, type: ebgp, remote: 10.79.7.34:unspecified, local: 0.0.0.0:unspecified',
+                    details='state: idle\ntype: ebgp\nremote: 10.79.7.34:unspecified\nlocal: 0.0.0.0:unspecified\nconnAttempts: 1144\nconnDrop: 4\nconnEst: 4'
                 ),
             ),
         ),
@@ -182,13 +172,8 @@ def test_parse_aci_bgp_peer_entry(string_table: List[List[str]], expected_sectio
             (
                 Result(
                     state=State.CRIT,
-                    summary=(
-                        'state=invalid type=ebgp'
-                        'remote=10.79.7.34:unspecified '
-                        'local=0.0.0.0:unspecified '
-                        'connAttempts=1144 '
-                        'connDrop=4 connEst=4'
-                    )
+                    summary='state: invalid, type: ebgp, remote: 10.79.7.34:unspecified, local: 0.0.0.0:unspecified',
+                    details='state: invalid\ntype: ebgp\nremote: 10.79.7.34:unspecified\nlocal: 0.0.0.0:unspecified\nconnAttempts: 1144\nconnDrop: 4\nconnEst: 4'
                 ),
             ),
         ),

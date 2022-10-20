@@ -49,11 +49,22 @@ class BgpPeerEntry(NamedTuple):
     @property
     def summary(self) -> str:
         return (
-            f'state={self.oper_st} type={self.type}'
-            f'remote={self.addr}:{self.remote_port} '
-            f'local={self.local_ip}:{self.local_port} '
-            f'connAttempts={self.conn_attempts} '
-            f'connDrop={self.conn_drop} connEst={self.conn_est}'
+            f'state: {self.oper_st}, '
+            f'type: {self.type}, '
+            f'remote: {self.addr}:{self.remote_port}, '
+            f'local: {self.local_ip}:{self.local_port}'
+        )
+
+    @property
+    def details(self) -> str:
+        return (
+            f'state: {self.oper_st}\n'
+            f'type: {self.type}\n'
+            f'remote: {self.addr}:{self.remote_port}\n'
+            f'local: {self.local_ip}:{self.local_port}\n'
+            f'connAttempts: {self.conn_attempts}\n'
+            f'connDrop: {self.conn_drop}\n'
+            f'connEst: {self.conn_est}'
         )
 
     @property
@@ -82,9 +93,13 @@ class BgpPeerEntry(NamedTuple):
 def parse_aci_bgp_peer_entry(string_table) -> List[BgpPeerEntry]:
     """
     Exmple output:
-        controller 1 APIC1 in-service FCH1835V2FM APIC-SERVER-M1 APIC-SERVER-M1
-
-        controller 1 ACI01 in-service FCH1935V1Z8 APIC-SERVER-M2 APIC-SERVER-M2
+        #addr connAttempts connDrop connEst localIp localPort operSt remotePort type
+        10.77.128.64 na 0 1 10.77.128.65 179 established 35090 ibgp
+        10.77.128.66 na 0 1 10.77.128.65 179 established 57895 ibgp
+        172.16.0.167 na 0 1 172.16.0.166 179 established 51984 ebgp
+        172.16.0.171 1 0 1 172.16.0.170 179 established 24988 ebgp
+        10.79.7.34 11428 0 0 0.0.0.0 unspecified idle unspecified ebgp
+        10.79.7.38 11428 0 0 0.0.0.0 unspecified idle unspecified ebgp
     """
     return [
         BgpPeerEntry.from_string_table(line) for line in string_table
@@ -108,7 +123,8 @@ def check_aci_bgp_peer_entry(item: str, section: List[BgpPeerEntry]) -> CheckRes
         if item == entry.addr:
             yield Result(
                 state=entry.cmk_state,
-                summary=entry.summary
+                summary=entry.summary,
+                details=entry.details,
             )
             break
     else:
