@@ -18,56 +18,54 @@ import pytest
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Service, Metric
 from cmk.base.plugins.agent_based.aci_dom_pwr_stats import (
-    parse_aci_dom_rx_pwr_stats,
-    discover_aci_dom_rx_pwr_stats,
-    check_aci_dom_rx_pwr_stats,
+    parse_aci_dom_pwr_stats,
+    discover_aci_dom_pwr_stats,
+    check_aci_dom_pwr_stats,
     DomPowerStat,
+    DomPowerStatValues,
+    PowerStatType,
 )
 
 
 SECTION_1: List = [
     DomPowerStat(
-        dn='topology/pod-1/node-101/sys/phys-[eth1/3]/phys/domstats/rxpwer',
-        alert='none',
-        status='none',
-        hi_alarm=5.000031,
-        hi_warn=4.000023,
-        lo_alarm=-13.695722,
-        lo_warn=-11.700533,
-        value=-1.674911,
+        dn='topology/pod-1/node-101/sys/phys-[eth1/3]/phys',
+        rx=DomPowerStatValues(
+            PowerStatType.RX, 'none', 'none', 5.000031, 4.000023, -13.695722, -11.700533, -1.726307,
+        ),
+        tx=DomPowerStatValues(
+            PowerStatType.TX, 'none', 'none', 5.000031, 4.000023, -8.498579, -7.500682, 1.162756,
+        )
     ),
 ]
 
 SECTION_2: List = [
     DomPowerStat(
-        dn='topology/pod-1/node-112/sys/phys-[eth1/1]/phys/domstats/rxpower',
-        alert='none',
-        status='none',
-        hi_alarm=0.999912,
-        hi_warn=0.000000,
-        lo_alarm=-13.098040,
-        lo_warn=-12.097149,
-        value=-2.599533,
+        dn='topology/pod-1/node-112/sys/phys-[eth1/1]/phys',
+        rx=DomPowerStatValues(
+            PowerStatType.RX, 'none', 'none', 0.999912, 0.000000, -13.098040, -12.097149, -2.599533,
+        ),
+        tx=DomPowerStatValues(
+            PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, -2.731099
+        )
     ),
     DomPowerStat(
-        dn='topology/pod-1/node-112/sys/phys-[eth1/11]/phys/domstats/rxpower',
-        alert='warn',
-        status='bla',
-        hi_alarm=0.999912,
-        hi_warn=0.000000,
-        lo_alarm=-13.098040,
-        lo_warn=-12.097149,
-        value=0.910695,
+        dn='topology/pod-1/node-112/sys/phys-[eth1/11]/phys',
+        rx=DomPowerStatValues(
+            PowerStatType.RX, 'warn', 'bla', 0.999912, 0.000000, -13.098040, -12.097149, 0.910695,
+        ),
+        tx=DomPowerStatValues(
+            PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, 0.668027,
+        )
     ),
     DomPowerStat(
-        dn='topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys/domstats/rxpower',
-        alert='none',
-        status='none',
-        hi_alarm=5.000031,
-        hi_warn=4.000023,
-        lo_alarm=-13.695722,
-        lo_warn=-11.700533,
-        value=-15.648960,
+        dn='topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys',
+        rx=DomPowerStatValues(
+            PowerStatType.RX, 'none', 'none', 5.000031, 4.000023, -13.695722, -11.700533, -15.648960,
+        ),
+        tx=DomPowerStatValues(
+            PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, -11.031196,
+        )
     ),
 ]
 
@@ -81,24 +79,24 @@ SECTION_2: List = [
         ),
         (
             [
-                ['#dn', 'alert', 'status', 'hi_alarm', 'hi_warn', 'lo_alarm', 'lo_warn', 'value'],
-                ['topology/pod-1/node-101/sys/phys-[eth1/3]/phys/domstats/rxpwer', 'none', 'none', '5.000031', '4.000023', '-13.695722', '-11.700533', '-1.674911'],
+                ['#iface_dn', 'rx_alert', 'rx_status', 'rx_hi_alarm', 'rx_hi_warn', 'rx_lo_alarm', 'rx_lo_warn', 'rx_value', 'tx_alert', 'tx_status', 'tx_hi_alarm', 'tx_hi_warn', 'tx_lo_alarm', 'tx_lo_warn', 'tx_value'],
+                ['topology/pod-1/node-101/sys/phys-[eth1/3]/phys', 'none', 'none', '5.000031', '4.000023', '-13.695722', '-11.700533', '-1.726307', 'none', 'none', '5.000031', '4.000023', '-8.498579', '-7.500682', '1.162756'],
             ],
             SECTION_1,
         ),
         (
             [
                 # shall also work without a header row
-                ['topology/pod-1/node-112/sys/phys-[eth1/1]/phys/domstats/rxpower', 'none', 'none', '0.999912', '0.000000', '-13.098040', '-12.097149', '-2.599533'],
-                ['topology/pod-1/node-112/sys/phys-[eth1/11]/phys/domstats/rxpower', 'warn', 'bla', '0.999912', '0.000000', '-13.098040', '-12.097149', '0.910695'],
-                ['topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys/domstats/rxpower', 'none', 'none', '5.000031', '4.000023', '-13.695722', '-11.700533', '-15.648960'],
+                ['topology/pod-1/node-112/sys/phys-[eth1/1]/phys', 'none', 'none', '0.999912', '0.000000', '-13.098040', '-12.097149', '-2.599533', 'none', 'none', '0.999912', '0.000000', '-9.299622', '-8.300319', '-2.731099'],
+                ['topology/pod-1/node-112/sys/phys-[eth1/11]/phys', 'warn', 'bla', '0.999912', '0.000000', '-13.098040', '-12.097149', '0.910695', 'none', 'none', '0.999912', '0.000000', '-9.299622', '-8.300319', '0.668027'],
+                ['topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys', 'none', 'none', '5.000031', '4.000023', '-13.695722', '-11.700533', '-15.648960', 'none', 'none', '0.999912', '0.000000', '-9.299622', '-8.300319', '-11.031196'],
             ],
             SECTION_2,
         ),
     ],
 )
-def test_parse_aci_dom_rx_pwr_stats(string_table: List[List[str]], expected_section: List[DomPowerStat]) -> None:
-    assert parse_aci_dom_rx_pwr_stats(string_table) == expected_section
+def test_parse_aci_dom_pwr_stats(string_table: List[List[str]], expected_section: List[DomPowerStat]) -> None:
+    assert parse_aci_dom_pwr_stats(string_table) == expected_section
 
 
 @pytest.mark.parametrize(
@@ -120,8 +118,8 @@ def test_parse_aci_dom_rx_pwr_stats(string_table: List[List[str]], expected_sect
         ),
     ],
 )
-def test_discover_aci_dom_rx_pwr_stats(section: List[DomPowerStat], expected_discovery_result: Tuple) -> None:
-    assert tuple(discover_aci_dom_rx_pwr_stats(section)) == expected_discovery_result
+def test_discover_aci_dom_pwr_stats(section: List[DomPowerStat], expected_discovery_result: Tuple) -> None:
+    assert tuple(discover_aci_dom_pwr_stats(section)) == expected_discovery_result
 
 
 @pytest.mark.parametrize(
@@ -138,33 +136,45 @@ def test_discover_aci_dom_rx_pwr_stats(section: List[DomPowerStat], expected_dis
             'eth1/1',
             SECTION_2,
             (
-                Result(state=State.OK, notice='alert: none, status: none',
-                       details='alert: none\nstatus: none\nhi_alarm: 0.999912\nhi_warn: 0.0\nlo_alarm: -13.09804\nlo_warn: -12.097149\nvalue: -2.599533 (precise)'),
-                Result(state=State.OK, summary='value: -2.60'),
-                Metric('dom_rx_power', -2.599533, levels=(0.0, 0.999912))
+                Result(state=State.OK, notice='RX alert: none, RX status: none',
+                       details='RX alert: none\nRX status: none\nRX hi_alarm: 0.999912\nRX hi_warn: 0.0\nRX lo_alarm: -13.09804\nRX lo_warn: -12.097149\nRX value: -2.599533 (precise)'),
+                Result(state=State.OK, summary='RX value: -2.60'),
+                Metric('dom_rx_power', -2.599533, levels=(0.0, 0.999912)),
+                Result(state=State.OK, notice='TX alert: none, TX status: none',
+                       details='TX alert: none\nTX status: none\nTX hi_alarm: 0.999912\nTX hi_warn: 0.0\nTX lo_alarm: -9.299622\nTX lo_warn: -8.300319\nTX value: -2.731099 (precise)'),
+                Result(state=State.OK, summary='TX value: -2.73'),
+                Metric('dom_tx_power', -2.731099, levels=(0.0, 0.999912)),
             )
         ),
         (
             'eth1/11',
             SECTION_2,
             (
-                Result(state=State.WARN, notice='alert: warn, status: bla',
-                       details='alert: warn\nstatus: bla\nhi_alarm: 0.999912\nhi_warn: 0.0\nlo_alarm: -13.09804\nlo_warn: -12.097149\nvalue: 0.910695 (precise)'),
-                Result(state=State.WARN, summary='value: 0.91 (warn/crit at 0.00/1.00)'),
-                Metric('dom_rx_power', 0.910695, levels=(0.0, 0.999912))
+                Result(state=State.WARN, notice='RX alert: warn, RX status: bla',
+                       details='RX alert: warn\nRX status: bla\nRX hi_alarm: 0.999912\nRX hi_warn: 0.0\nRX lo_alarm: -13.09804\nRX lo_warn: -12.097149\nRX value: 0.910695 (precise)'),
+                Result(state=State.WARN, summary='RX value: 0.91 (warn/crit at 0.00/1.00)'),
+                Metric('dom_rx_power', 0.910695, levels=(0.0, 0.999912)),
+                Result(state=State.OK, notice='TX alert: none, TX status: none',
+                       details='TX alert: none\nTX status: none\nTX hi_alarm: 0.999912\nTX hi_warn: 0.0\nTX lo_alarm: -9.299622\nTX lo_warn: -8.300319\nTX value: 0.668027 (precise)'),
+                Result(state=State.WARN, summary='TX value: 0.67 (warn/crit at 0.00/1.00)'),
+                Metric('dom_tx_power', 0.668027, levels=(0.0, 0.999912)),
             )
         ),
         (
             'eth11/21/102',
             SECTION_2,
             (
-                Result(state=State.OK, notice='alert: none, status: none',
-                       details='alert: none\nstatus: none\nhi_alarm: 5.000031\nhi_warn: 4.000023\nlo_alarm: -13.695722\nlo_warn: -11.700533\nvalue: -15.64896 (precise)'),
-                Result(state=State.CRIT, summary='value: -15.65 (warn/crit below -11.70/-13.70)'),
+                Result(state= State.OK, notice='RX alert: none, RX status: none',
+                       details='RX alert: none\nRX status: none\nRX hi_alarm: 5.000031\nRX hi_warn: 4.000023\nRX lo_alarm: -13.695722\nRX lo_warn: -11.700533\nRX value: -15.64896 (precise)'),
+                Result(state=State.CRIT, summary='RX value: -15.65 (warn/crit below -11.70/-13.70)'),
                 Metric('dom_rx_power', -15.64896, levels=(4.000023, 5.000031)),
+                Result(state= State.OK, notice='RX alert: none, RX status: none',
+                       details='TX alert: none\nTX status: none\nTX hi_alarm: 0.999912\nTX hi_warn: 0.0\nTX lo_alarm: -9.299622\nTX lo_warn: -8.300319\nTX value: -11.031196 (precise)'),
+                Result(state=State.CRIT, summary='TX value: -11.03 (warn/crit below -8.30/-9.30)'),
+                Metric('dom_tx_power', -11.031196, levels=(0.0, 0.999912)),
             )
         ),
     ],
 )
-def test_check_aci_dom_rx_pwr_stats(item: str, section: List[DomPowerStat], expected_check_result: Tuple) -> None:
-    assert tuple(check_aci_dom_rx_pwr_stats(item, section)) == expected_check_result
+def test_check_aci_dom_pwr_stats(item: str, section: List[DomPowerStat], expected_check_result: Tuple) -> None:
+    assert tuple(check_aci_dom_pwr_stats(item, section)) == expected_check_result

@@ -10,7 +10,13 @@ metric_info["health"] = {
 metric_info["dom_rx_power"] = {
     "title": _("DOM RX Power"),
     "unit": "dbm",
-    "color": "34/a",
+    "color": "31/a",
+}
+
+metric_info["dom_tx_power"] = {
+    "title": _("DOM TX Power"),
+    "unit": "dbm",
+    "color": "26/a",
 }
 
 metric_info["fcs_errors"] = {

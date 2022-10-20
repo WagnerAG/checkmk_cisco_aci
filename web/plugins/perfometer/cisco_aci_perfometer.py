@@ -14,12 +14,25 @@ perfometer_info.append({
     "total": 100.0,
 })
 
-perfometer_info.append({
-    "type": "logarithmic",
-    "metric": "dom_rx_power",
-    "half_value": 4,
-    "exponent": 2,
-})
+perfometer_info.append(
+    {
+        "type": "dual",
+        "perfometers": [
+            {
+                "type": "logarithmic",
+                "metric": "dom_rx_power",
+                "half_value": 4,
+                "exponent": 2,
+            },
+            {
+                "type": "logarithmic",
+                "metric": "dom_tx_power",
+                "half_value": 4,
+                "exponent": 2,
+            },
+        ],
+    }
+)
 
 perfometer_info.append(
     {
