@@ -13,3 +13,30 @@ perfometer_info.append({
     "segments": ["health"],
     "total": 100.0,
 })
+
+perfometer_info.append({
+    "type": "logarithmic",
+    "metric": "dom_rx_power",
+    "half_value": 4,
+    "exponent": 2,
+})
+
+perfometer_info.append(
+    {
+        "type": "stacked",
+        "perfometers": [
+            {
+                "type": "logarithmic",
+                "metric": "fcs_errors",
+                "half_value": 10,
+                "exponent": 2,
+            },
+            {
+                "type": "logarithmic",
+                "metric": "stomped_crc_errors",
+                "half_value": 10,
+                "exponent": 2,
+            },
+        ],
+    }
+)
