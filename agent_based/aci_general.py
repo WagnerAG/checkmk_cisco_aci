@@ -22,20 +22,23 @@ Version:    0.6
 """
 
 from __future__ import annotations
-from enum import Enum, unique
-from .agent_based_api.v1 import State
+from contextlib import suppress
+from enum import Enum
 
 
-@unique
-class ACIHealthLevels(Enum):
-    WARN: int = 95
-    CRIT: int = 85
+class ConversionFactor(Enum):
+    """Enum used to """
+    MINUTES: int = 60
+    HOURS: int = 3600
 
 
-def get_state_by_health_score(health: int) -> State:
-    if health < ACIHealthLevels.CRIT.value:
-        return State.CRIT
-    elif health < ACIHealthLevels.WARN.value:
-        return State.WARN
+def convert_rate(value: float, factor: ConversionFactor = ConversionFactor.MINUTES) -> float:
+    """convert values from x/second into other rate. Default converts into x/min."""
+    return value * factor.value
 
-    return State.OK
+
+def to_int(value: str) -> int:
+    """return input value as int if casting is possible, otherwise return zero"""
+    with suppress(ValueError):
+        return int(value)
+    return 0

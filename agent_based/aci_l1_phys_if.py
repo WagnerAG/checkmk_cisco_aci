@@ -22,7 +22,7 @@ Version:    0.7
 
 from __future__ import annotations
 from dataclasses import dataclass
-from enum import Enum
+
 import time
 from typing import Dict, NamedTuple, Optional, Tuple
 
@@ -39,6 +39,7 @@ from .agent_based_api.v1 import (
     get_rate,
     get_value_store,
 )
+from .aci_general import convert_rate
 
 
 ROUND_TO_DIGITS: int = 2
@@ -47,14 +48,6 @@ DEFAULT_ERROR_LEVELS: Dict = {
     'level_crc_errors': (1.0, 12.0),
     'level_stomped_crc_errors': (1.0, 12.0),
 }
-
-
-class ConversionFactor(Enum):
-    MINUTES: int = 60
-
-
-def convert_rate(value: float, factor: ConversionFactor = ConversionFactor.MINUTES) -> float:
-    return value * factor.value
 
 
 class ErrorRates(NamedTuple):
