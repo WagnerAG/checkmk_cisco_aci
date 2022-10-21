@@ -13,10 +13,9 @@
 # Boston, MA 02110-1301 USA.
 
 """
-Check_MK Checks to use with agent_cisco_aci Datasource
+Check_MK agent based checks to be used with agent_cisco_aci Datasource
 
-Authors:    Roger Ellenberger, roger.ellenberger@wagner.ch
-Version:    0.7
+Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 
 """
 
