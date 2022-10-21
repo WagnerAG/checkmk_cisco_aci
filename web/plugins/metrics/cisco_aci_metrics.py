@@ -36,3 +36,21 @@ metric_info["stomped_crc_errors"] = {
     "unit": "count",
     "color": "21/a",
 }
+
+metric_info["bgp_conn_attempts"] = {
+    "title": _("BGP connection attempts"),
+    "unit": "count",
+    "color": "46/a",
+}
+
+metric_info["bgp_conn_drop"] = {
+    "title": _("BGP connection drops"),
+    "unit": "count",
+    "color": "45/a",
+}
+
+metric_info["bgp_conn_est"] = {
+    "title": _("BGP connection establishments"),
+    "unit": "count",
+    "color": "44/a",
+}
