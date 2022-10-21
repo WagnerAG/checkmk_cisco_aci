@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- encoding: utf-8; py-indent-offset: 4 -*-
 
 # This is free software;  you can redistribute it and/or modify it
 # under the  terms of the  GNU General Public License  as published by
@@ -13,11 +13,9 @@
 # Boston, MA 02110-1301 USA.
 
 """
-Nagios CMK Datasource Programm to check Cisco ACI
+Check_MK WATO rule spec for Cisco ACI special agent
 
-Authors:    Samuel Zehnder, zehnder@netcloud.ch
-            Roger Ellenberger, roger.ellenberger@wagner.ch
-Version:    0.7
+Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 
 """
 

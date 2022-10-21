@@ -17,7 +17,6 @@ Nagios CMK Datasource Programm to check Cisco ACI
 
 Authors:    Samuel Zehnder <zehnder@netcloud.ch>
             Roger Ellenberger <roger.ellenberger@wagner.ch>
-Version:    0.7
 
 """
 

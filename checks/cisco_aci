@@ -13,11 +13,10 @@
 # Boston, MA 02110-1301 USA.
 
 """
-Nagios CMK Datasource Programm to check Cisco ACI
+CMK Datasource Programm to check Cisco ACI
 
-Authors:    Samuel Zehnder, zehnder@netcloud.ch
-            Roger Ellenberger, roger.ellenberger@wagner.ch
-Version:    0.7
+Authors:    Samuel Zehnder <zehnder@netcloud.ch>
+            Roger Ellenberger <roger.ellenberger@wagner.ch>
 
 """
 

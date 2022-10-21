@@ -31,7 +31,7 @@
     },
     'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
-    'version': '0.7.5',
+    'version': '0.7.6',
     'version.min_required': '2.0.0',
     'version.packaged': '2.0.0p27'
 }
