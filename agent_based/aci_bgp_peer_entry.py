@@ -47,6 +47,10 @@ DEFAULT_BGP_RATE_LEVELS: Dict = {
 }
 
 
+def con_rate(value: float) -> str:
+    return f'{value:0.2f}/min'
+
+
 class ConnectionRates(NamedTuple):
     attempts: float
     drop: float
@@ -175,6 +179,7 @@ def _check_rates(params: Dict, bgp_peer_entry: BgpPeerEntry) -> CheckResult:
                                 metric_name=f'bgp_conn_{rate_type}',
                                 boundaries=(0.0, None),
                                 label=f'BGP connection {rate_type} value',
+                                render_func=con_rate,
                                 notice_only=True)
 
 

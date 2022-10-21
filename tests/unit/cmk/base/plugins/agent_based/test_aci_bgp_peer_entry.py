@@ -152,11 +152,11 @@ def test_parse_aci_bgp_peer_entry(string_table: List[List[str]], expected_sectio
                         'connAttempts: 0.0/min (Total: na)\nconnDrop: 0.0/min (Total: 0)\nconnEst: 0.5/min (Total: 1)'
                     )
                 ),
-                Result(state= State.OK, notice='BGP connection attempts value: 0.00'),
+                Result(state= State.OK, notice='BGP connection attempts value: 0.00/min'),
                 Metric('bgp_conn_attempts', 0.0, levels=(1.0, 6.0), boundaries=(0.0, None)),
-                Result(state= State.OK, notice='BGP connection drop value: 0.00'),
+                Result(state= State.OK, notice='BGP connection drop value: 0.00/min'),
                 Metric('bgp_conn_drop', 0.0, levels=(1.0, 6.0), boundaries=(0.0, None)),
-                Result(state= State.OK, notice='BGP connection est value: 0.50'),
+                Result(state= State.OK, notice='BGP connection est value: 0.50/min'),
                 Metric('bgp_conn_est', 0.5, levels=(1.0, 6.0), boundaries=(0.0, None)),
             ),
         ),
@@ -185,11 +185,11 @@ def test_parse_aci_bgp_peer_entry(string_table: List[List[str]], expected_sectio
                         'connAttempts: 572.0/min (Total: 1144)\nconnDrop: 2.0/min (Total: 4)\nconnEst: 2.0/min (Total: 4)'
                     )
                 ),
-                Result(state=State.CRIT, summary='BGP connection attempts value: 572.00 (warn/crit at 1.00/6.00)'),
+                Result(state=State.CRIT, summary='BGP connection attempts value: 572.00/min (warn/crit at 1.00/min/6.00/min)'),
                 Metric('bgp_conn_attempts', 572.0, levels=(1.0, 6.0), boundaries=(0.0, None)),
-                Result(state= State.WARN, summary='BGP connection drop value: 2.00 (warn/crit at 1.00/6.00)'),
+                Result(state= State.WARN, summary='BGP connection drop value: 2.00/min (warn/crit at 1.00/min/6.00/min)'),
                 Metric('bgp_conn_drop', 2.0, levels=(1.0, 6.0), boundaries=(0.0, None)),
-                Result(state= State.WARN, summary='BGP connection est value: 2.00 (warn/crit at 1.00/6.00)'),
+                Result(state= State.WARN, summary='BGP connection est value: 2.00/min (warn/crit at 1.00/min/6.00/min)'),
                 Metric('bgp_conn_est', 2.0, levels=(1.0, 6.0), boundaries=(0.0, None)),
             ),
         ),
@@ -218,11 +218,11 @@ def test_parse_aci_bgp_peer_entry(string_table: List[List[str]], expected_sectio
                         'connAttempts: 572.0/min (Total: 1144)\nconnDrop: 2.0/min (Total: 4)\nconnEst: 2.0/min (Total: 4)'
                     )
                 ),
-                Result(state=State.CRIT, summary='BGP connection attempts value: 572.00 (warn/crit at 1.00/6.00)'),
+                Result(state=State.CRIT, summary='BGP connection attempts value: 572.00/min (warn/crit at 1.00/min/6.00/min)'),
                 Metric('bgp_conn_attempts', 572.0, levels=(1.0, 6.0), boundaries=(0.0, None)),
-                Result(state= State.WARN, summary='BGP connection drop value: 2.00 (warn/crit at 1.00/6.00)'),
+                Result(state= State.WARN, summary='BGP connection drop value: 2.00/min (warn/crit at 1.00/min/6.00/min)'),
                 Metric('bgp_conn_drop', 2.0, levels=(1.0, 6.0), boundaries=(0.0, None)),
-                Result(state= State.WARN, summary='BGP connection est value: 2.00 (warn/crit at 1.00/6.00)'),
+                Result(state= State.WARN, summary='BGP connection est value: 2.00/min (warn/crit at 1.00/min/6.00/min)'),
                 Metric('bgp_conn_est', 2.0, levels=(1.0, 6.0), boundaries=(0.0, None)),
             ),
         ),
