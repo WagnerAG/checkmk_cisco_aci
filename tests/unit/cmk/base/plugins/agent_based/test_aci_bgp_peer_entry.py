@@ -24,8 +24,14 @@ from cmk.base.plugins.agent_based.aci_bgp_peer_entry import (
     parse_aci_bgp_peer_entry,
     check_aci_bgp_peer_entry,
     BgpPeerEntry,
-    DEFAULT_BGP_RATE_LEVELS,
 )
+
+
+DEFAULT_BGP_RATE_LEVELS: Dict = {
+    'level_bgp_attempts': (1.0, 6.0),
+    'level_bgp_drop': (1.0, 6.0),
+    'level_bgp_est': (1.0, 6.0),
+}
 
 
 def mocked_value_store(addr: str, timestamp: int) -> Dict:

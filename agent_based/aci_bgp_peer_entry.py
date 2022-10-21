@@ -41,10 +41,9 @@ from .agent_based_api.v1 import (
 from .aci_general import convert_rate, to_int
 
 
+# by default we only alert on BGP connection drop
 DEFAULT_BGP_RATE_LEVELS: Dict = {
-    'level_bgp_attempts': (1.0, 6.0),
     'level_bgp_drop': (1.0, 6.0),
-    'level_bgp_est': (1.0, 6.0),
 }
 
 

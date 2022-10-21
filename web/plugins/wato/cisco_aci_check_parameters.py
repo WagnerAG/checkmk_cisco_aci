@@ -196,3 +196,93 @@ rulespec_registry.register(
         title=lambda: _("Cisco ACI Node Health Levels"),
     )
 )
+
+
+def _parameter_valuespec_aci_bgp_peer_entry_levels():
+    return Dictionary(
+        help=_(
+            'To obtain the data required for this check, please configure'
+            ' the datasource program "Cisco ACI". By default we only alert'
+            ' on BGP connection drops.'
+        ),
+        elements=[
+            (
+                'level_bgp_attempts',
+                Tuple(
+                    title=_("BGP connection attempts per minute"),
+                    help=_(
+                        "An alert will be raised if there are more than the given "
+                        "amount of BGP connection attempts per minute."
+                    ),
+                    elements=[
+                        Float(
+                            title=_("Warning at"),
+                            minvalue=0.0,
+                            default_value=1.0,
+                        ),
+                        Float(
+                            title=_("Critical at"),
+                            minvalue=0.0,
+                            default_value=6.0,
+                        ),
+                    ],
+                ),
+            ),
+            (
+                'level_bgp_drop',
+                Tuple(
+                    title=_("BGP connection drops per minute"),
+                    help=_(
+                        "An alert will be raised if there are more than the given "
+                        "amount of BGP connection drops per minute."
+                    ),
+                    elements=[
+                        Float(
+                            title=_("Warning at"),
+                            minvalue=0.0,
+                            default_value=1.0,
+                        ),
+                        Float(
+                            title=_("Critical at"),
+                            minvalue=0.0,
+                            default_value=6.0,
+                        ),
+                    ],
+                ),
+            ),
+            (
+                'level_bgp_est',
+                Tuple(
+                    title=_("BGP connection establishments per minute"),
+                    help=_(
+                        "An alert will be raised if there are more than the given "
+                        "amount of BGP connection establishments per minute."
+                    ),
+                    elements=[
+                        Float(
+                            title=_("Warning at"),
+                            minvalue=0.0,
+                            default_value=1.0,
+                        ),
+                        Float(
+                            title=_("Critical at"),
+                            minvalue=0.0,
+                            default_value=6.0,
+                        ),
+                    ],
+                ),
+            ),
+        ],
+    )
+
+
+rulespec_registry.register(
+    CheckParameterRulespecWithItem(
+        check_group_name="aci_bgp_peer_entry_levels",
+        group=RulespecGroupCheckParametersNetworking,
+        item_spec=lambda: TextInput(title=_("Cisco ACI BGP peer entry settings")),
+        match_type="dict",
+        parameter_valuespec=_parameter_valuespec_aci_bgp_peer_entry_levels,
+        title=lambda: _("Cisco ACI BGP peer entry settings"),
+    )
+)
