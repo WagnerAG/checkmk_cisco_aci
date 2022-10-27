@@ -55,7 +55,7 @@ def parse_aci_controller(string_table) -> List[ACIController]:
     """
     return [
         ACIController(controller_id, name, status, serial, model, descr)
-        for _, controller_id, name, status, serial, model, descr
+        for _, controller_id, name, status, serial, model, *descr
         in string_table
     ]
 

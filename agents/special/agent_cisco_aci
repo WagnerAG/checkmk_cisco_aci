@@ -488,9 +488,9 @@ def get_pwr_stats(apic: Apic, aci_nodes: Dict):
 # General helper functions                                                    #
 ###############################################################################
 
-def prepare_dict_for_writer(result_obj: Dict, fields: Tuple) -> str:
+def prepare_dict_for_writer(result_obj: Dict, fields: Tuple, separator=' ') -> str:
     selected_data = [str(result_obj.get(field, 'n/a')) for field in fields]
-    return ' '.join(selected_data)
+    return separator.join(selected_data)
 
 
 def _transform_nodes_to_lookup_table(aci_nodes: Dict[str, List[AciNode]]) -> List:
@@ -546,15 +546,15 @@ def output_header():
         writer.append('AgentOS: Cisco ACI')
 
 
-def output_aci_class_attributes(apic: Apic, title: str, aci_class: str, fields: Tuple):
+def output_aci_class_attributes(apic: Apic, title: str, aci_class: str, fields: Tuple, separator=' '):
     LOGGING.info(f'fetch and write {title} section')
     results = apic.get_data_from_class(aci_class)
 
-    with SectionWriter(f'aci_{title}', separator=' ') as writer:
-        writer.append('#' + (' '.join(fields)))
+    with SectionWriter(f'aci_{title}', separator=separator) as writer:
+        writer.append('#' + (separator.join(fields)))
         if isinstance(results, list):
             for result_obj in results:
-                writer.append(prepare_dict_for_writer(result_obj, fields))
+                writer.append(prepare_dict_for_writer(result_obj, fields, separator))
         else:
             writer.append(results)
 
@@ -563,6 +563,14 @@ def output_bgp_peer_entry(apic: Apic):
     output_aci_class_attributes(
         apic, title='bgp_peer_entry', aci_class='bgpPeerEntry',
         fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
+    )
+
+
+def output_fault_inst(apic: Apic):
+    output_aci_class_attributes(
+        apic, title='fault_inst', aci_class='faultInst',
+        fields=('severity', 'code', 'descr', 'dn', 'ack'),
+        separator='\t',
     )
 
 
@@ -620,6 +628,8 @@ def agent_cisco_aci_main(args: Args) -> None:
 
     output_bgp_peer_entry(apic)
 
+    output_fault_inst(apic)
+
     output_iface_stats(
         apic, args.only_iface_admin_up,
         aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
@@ -656,3 +666,4 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
 if __name__ == "__main__":
     """Main entry point to be used"""
     special_agent_main(parse_arguments, agent_cisco_aci_main)
+

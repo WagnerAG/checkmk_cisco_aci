@@ -77,7 +77,7 @@ def _valuespec_special_agents_cisco_aci():
                 )
             ),
         ],
-        optional_keys=[],
+        optional_keys=['dns-domain'],
     )
 
 
@@ -88,3 +88,4 @@ rulespec_registry.register(
         valuespec=_valuespec_special_agents_cisco_aci,
     )
 )
+
