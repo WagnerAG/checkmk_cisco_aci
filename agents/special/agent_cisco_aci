@@ -570,7 +570,7 @@ def output_fault_inst(apic: Apic):
     output_aci_class_attributes(
         apic, title='fault_inst', aci_class='faultInst',
         fields=('severity', 'code', 'descr', 'dn', 'ack'),
-        separator='\t',
+        separator='|',
     )
 
 
