@@ -314,7 +314,7 @@ class DomPwrStats(NamedTuple):
         ]))
 
     def __repr__(self):
-        return (f'{self.dn} {self.rx} {self.tx}')
+        return (f'{self.dn}{DEFAULT_SEPARATOR}{self.rx}{DEFAULT_SEPARATOR}{self.tx}')
 
     @property
     def node_str(self):
@@ -491,7 +491,10 @@ def get_pwr_stats(apic: Apic, aci_nodes: Dict):
 ###############################################################################
 
 def prepare_dict_for_writer(result_obj: Dict, fields: Tuple) -> str:
-    selected_data = [str(result_obj.get(field, 'n/a')) for field in fields]
+    def _prepare(field) -> str:
+        return str(result_obj.get(field, 'n/a')).replace(DEFAULT_SEPARATOR, '//')
+ 
+    selected_data = [_prepare(field) for field in fields]
     return DEFAULT_SEPARATOR.join(selected_data)
 
 
@@ -531,7 +534,7 @@ def output_aci_health(apic):
     health_score = get_aci_health(apic)
 
     with SectionWriter('aci_health', separator=DEFAULT_SEPARATOR) as writer:
-        writer.append(f'health {health_score} {" ".join(get_faults(apic.session, apic.url))}')
+        writer.append(DEFAULT_SEPARATOR.join(('health', str(health_score), *get_faults(apic.session, apic.url))))
 
 
 def output_aci_version(url, session):
@@ -539,11 +542,11 @@ def output_aci_version(url, session):
 
     with SectionWriter('aci_version', separator=DEFAULT_SEPARATOR) as writer:
         for node, version in versions:
-            writer.append(f'{node} {version}')
+            writer.append(f'{node}{DEFAULT_SEPARATOR}{version}')
 
 
 def output_header():
-    with SectionWriter('check_mk', separator=DEFAULT_SEPARATOR) as writer:
+    with SectionWriter('check_mk', separator=' ') as writer:
         writer.append(f'Version: {NAME}-{VERSION}')
         writer.append('AgentOS: Cisco ACI')
 
