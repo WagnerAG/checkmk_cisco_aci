@@ -21,6 +21,7 @@ Authors:    Fabian Binder <fabian.binder@comnetgmbh.com>
 
 from __future__ import annotations
 from typing import NamedTuple
+from enum import Enum
 
 from .agent_based_api.v1.type_defs import (
     CheckResult,
@@ -28,11 +29,18 @@ from .agent_based_api.v1.type_defs import (
 )
 from .agent_based_api.v1 import (
     register,
-    Metric,
     Result,
     Service,
     State,
 )
+
+
+class FaultSeverity(Enum):
+    CRIT: str = 'critical'
+    MAJOR: str = 'major'
+    MINOR: str = 'minor'
+    WARN: str = 'warning'
+    CLEARED: str = 'cleared'
 
 
 class ACIFaultInst(NamedTuple):
@@ -54,7 +62,8 @@ class ACIFaultInst(NamedTuple):
 def parse_aci_fault_inst(string_table) -> ACIFaultInst:
     """
     Example output:
-    major   F609802 [FSM:FAILED]: Task for updating Number of Uplinks on DVS/AVE for VMM controller: hostname with name xyz in datacenter DC01 in domain: DC01-GENERIC(TASK:ifc:vmmmgr:CompPolContUpdateCtrlrNoOfUplinksPol)      comp/prov-VMware/ctrlr-[DC01-GENERIC]-dc01/polCont/fault-F609802 no
+    #severity|code|descr|dn|ack
+    major|F609802|[FSM:FAILED]: Task for updating Number of Uplinks on DVS/AVE for VMM controller: hostname with name xyz in datacenter DC01 in domain: DC01-GENERIC(TASK:ifc:vmmmgr:CompPolContUpdateCtrlrNoOfUplinksPol)|comp/prov-VMware/ctrlr-[DC01-GENERIC]-dc01/polCont/fault-F609802|no
     """
     return [
         ACIFaultInst.from_string_table(line) for line in string_table
@@ -73,21 +82,25 @@ def discover_aci_fault_inst(section: ACIFaultInst) -> DiscoveryResult:
 
 
 def check_aci_fault_inst(section: ACIFaultInst) -> CheckResult:
-    minor = 0
-    major = 0
-    cleared = 0
+    minor: int = 0
+    major: int = 0
+    warnings: int = 0
+    cleared: int = 0
 
     for fault in section:
-        if fault.severity == "critical" and fault.ack == "no":
+        if fault.severity == FaultSeverity.CRIT.value and fault.ack == "no":
             yield Result(state=State.CRIT, summary="Critical unacknowledged error: %s" % fault.descr)
         else:
-            if fault.severity == "major":
+            if fault.severity == FaultSeverity.MAJOR.value:
                 major += 1
-            elif fault.severity == "minor":
+            elif fault.severity == FaultSeverity.MINOR.value:
                 minor += 1
-            elif fault.severity == "cleared":
+            elif fault.severity == FaultSeverity.WARN.value:
+                warnings += 1
+            elif fault.severity == FaultSeverity.CLEARED.value:
                 cleared += 1
-    yield Result(state=State.OK, summary= "%s major alarms, %s minor alarms, %s cleared alarms" % (major, minor, cleared))
+
+    yield Result(state=State.OK, summary="%s major alarms, %s minor alarms, %s warnings, %s cleared alarms" % (major, minor, warnings, cleared))
 
 
 register.check_plugin(
