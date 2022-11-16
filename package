@@ -17,7 +17,16 @@
             'aci_version.py'
         ],
         'agents': ['special/agent_cisco_aci'],
-        'checkman': [],
+        'checkman': [
+            'aci_bgp_peer_entry',
+            'aci_controller',
+            'aci_dom_pwr_stats',
+            'aci_fault_inst',
+            'aci_health',
+            'aci_leaf',
+            'aci_spine',
+            'aci_version'
+        ],
         'checks': ['agent_cisco_aci'],
         'doc': [],
         'inventory': [],
