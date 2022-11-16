@@ -1,0 +1,18 @@
+title: ACI spine
+agents: special
+catalog: hw
+license: GPL
+distribution: check_mk
+description:
+ ACI spine check:
+ '/api/node/class/topSystem.json?query-target=self&rsp-subtree=children&rsp-subtree-class=eqptCh&rsp-subtree-include=health'
+
+ If the state of the spine is not in-service, it will be reported as {{CRIT}}.
+ Additionally, there are {{WARN}} and  {{CRIT}} thresholds on the health score.
+
+inventory:
+ All spines the agent reports will be inventorized.
+
+changelog:
+ - initial version
+

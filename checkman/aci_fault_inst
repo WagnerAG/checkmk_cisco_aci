@@ -1,0 +1,17 @@
+title: ACI Faults
+agents: special
+catalog: hw
+license: GPL
+distribution: check_mk
+description:
+ ACI Fault Check:
+ '/api/class/faultInst.json'
+
+ If there are any critical, unacknowledged errors, this check will report {{CRIT}}
+
+inventory:
+ A single service will be inventorized.
+
+changelog:
+ - initial version
+

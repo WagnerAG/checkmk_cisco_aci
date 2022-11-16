@@ -1,0 +1,19 @@
+title: ACI DOM Rx/Tx Power
+agents: special
+catalog: hw
+license: GPL
+distribution: check_mk
+description:
+ ACI DOM Rx/Tx Power check:
+ '/api/class/ethpmDOMRxPwrStats.json'
+ '/api/class/ethpmDOMTxPwrStats.json'
+
+ If the DOM has an alert, the check will be {{WARN}}
+ Additionally, there are {{WARN}} and  {{CRIT}} thresholds on the Rx/Tx values based on settings in the ACI.
+
+inventory:
+ All DOMs the agent reports will be inventorized.
+
+changelog:
+ - initial version
+
