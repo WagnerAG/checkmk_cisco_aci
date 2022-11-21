@@ -1,15 +1,15 @@
 title: ACI version
 agents: special
 catalog: hw
-license: GPL
+license: GPLv2
 distribution: check_mk
 description:
  ACI version check:
- '/api/node/class/firmwareCtrlrRunning.json'
+ {'/api/node/class/firmwareCtrlrRunning.json'}
 
  If the versions are not equal on all nodes, the Service will report a {{WARN}} state
 
-inventory:
+discovery:
  A single service will be inventorized.
 
 changelog:
