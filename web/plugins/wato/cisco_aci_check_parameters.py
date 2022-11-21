@@ -164,6 +164,53 @@ rulespec_registry.register(
 )
 
 
+def _parameter_valuespec_aci_health_levels():
+    return Dictionary(
+        help=_(
+            'To obtain the data required for this check, please configure'
+            ' the datasource program "Cisco ACI".'
+        ),
+        elements=[
+            (
+                'health_levels',
+                Tuple(
+                    title=_("Tenant Health Levels"),
+                    help=_(
+                        "An alert will be raised if the tenant health score is lower than "
+                        "the configured level."
+                    ),
+                    elements=[
+                        Integer(
+                            title=_("Warning at"),
+                            minvalue=0,
+                            maxvalue=100,
+                            default_value=95,
+                        ),
+                        Integer(
+                            title=_("Critical at"),
+                            minvalue=0,
+                            maxvalue=100,
+                            default_value=85,
+                        ),
+                    ],
+                ),
+            ),
+        ],
+    )
+
+
+rulespec_registry.register(
+    CheckParameterRulespecWithItem(
+        check_group_name="aci_tenant_health_levels",
+        group=RulespecGroupCheckParametersNetworking,
+        item_spec=lambda: TextInput(title=_("Cisco ACI Tenant Health Levels")),
+        match_type="dict",
+        parameter_valuespec=_parameter_valuespec_aci_health_levels,
+        title=lambda: _("Cisco ACI Tenant Health Levels"),
+    )
+)
+
+
 def _parameter_valuespec_aci_node_levels():
     return Dictionary(
         help=_(
