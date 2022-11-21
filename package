@@ -14,6 +14,7 @@
             'aci_leaf.py',
             'aci_node.py',
             'aci_spine.py',
+            'aci_tenants.py',
             'aci_version.py'
         ],
         'agents': ['special/agent_cisco_aci'],
@@ -25,6 +26,7 @@
             'aci_health',
             'aci_leaf',
             'aci_spine',
+            'aci_tenants',
             'aci_version'
         ],
         'checks': ['agent_cisco_aci'],
@@ -41,7 +43,7 @@
     },
     'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
-    'version': '0.7.9',
+    'version': '0.7.10',
     'version.min_required': '2.0.0',
     'version.packaged': '2.0.0p27'
 }
