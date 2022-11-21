@@ -28,16 +28,29 @@ def agent_cisco_aci_arguments(params, hostname, ipaddress):
 
     args = []
     args += ["--host", *params['host']]
+
     if "dns-domain" in params:
         args += ["--dns-domain", params['dns-domain']]
+
     args += ["--user", params['user']]
     args += ["--password", passwordstore_get_cmdline("%s", params["password"])]
+
     if params["only-iface-admin-up"]:
         args += ["--only-iface-admin-up"]
+
+    skip = params.get("skip-sections")
+    if skip:
+        if 1 in skip:
+            args += ["--skip-bgp-peer-entry"]
+        if 2 in skip:
+            args += ["--skip-fault-inst"]
+        if 3 in skip:
+            args += ["--skip-l1-phys-if"]
+        if 4 in skip:
+            args += ["--skip-dom-pwr-stats"]
 
     return args
 
 
 """register invoke function for the agent"""
 special_agent_info['cisco_aci'] = agent_cisco_aci_arguments
-
