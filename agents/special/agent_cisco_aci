@@ -60,34 +60,6 @@ DEFAULT_SEPARATOR: str = '|'
 # Models                                                                      #
 ###############################################################################
 
-@dataclass
-class AciNode:
-    name: str
-    role: str
-    state: str
-    serial: str
-    node_id: str
-    health: str = "-1"
-    model: str = "unknown"
-    descr: str = ""
-
-    def build_node_output(self) -> Tuple:
-        if self.role == 'controller':
-            node_info = (self.role, self.node_id, self.name, self.state, self.serial,
-                         self.model, self.descr)
-        else:
-            node_info = (self.role, self.node_id, self.name, self.state, self.health,
-                         self.serial, self.model, self.descr)
-
-        node_info = tuple(map(str.strip, node_info))  # sanitize strings
-
-        return node_info
-
-    @property
-    def node_str(self):
-        return f'node-{self.node_id}'
-
-
 class Apic:
 
     def __init__(self, args) -> None:
@@ -154,6 +126,34 @@ class Apic:
     def get_data_from_class(self, aci_class: str) -> List:
         result = self.get_imdata(endpoint=f'class/{aci_class}.json')
         return [item[aci_class]['attributes'] for item in result]
+
+
+@dataclass
+class AciNode:
+    name: str
+    role: str
+    state: str
+    serial: str
+    node_id: str
+    health: str = "-1"
+    model: str = "unknown"
+    descr: str = ""
+
+    def build_node_output(self) -> Tuple:
+        if self.role == 'controller':
+            node_info = (self.role, self.node_id, self.name, self.state, self.serial,
+                         self.model, self.descr)
+        else:
+            node_info = (self.role, self.node_id, self.name, self.state, self.health,
+                         self.serial, self.model, self.descr)
+
+        node_info = tuple(map(str.strip, node_info))  # sanitize strings
+
+        return node_info
+
+    @property
+    def node_str(self):
+        return f'node-{self.node_id}'
 
 
 class PhysicalInterfaces(NamedTuple):
@@ -670,4 +670,3 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
 if __name__ == "__main__":
     """Main entry point to be used"""
     special_agent_main(parse_arguments, agent_cisco_aci_main)
-
