@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import time
-from typing import Dict, NamedTuple, Optional, Tuple
+from typing import Dict, NamedTuple, Optional, Tuple, Sequence
 
 from .agent_based_api.v1.type_defs import (
     CheckResult,
@@ -120,9 +120,9 @@ class AciL1Interface:
         return self.rates
 
     @staticmethod
-    def from_string_table(line) -> AciL1Interface:
-        line[4] = int(line[4]) if line[4] is not None else 0
-        line[5] = int(line[5]) if line[5] is not None else 0
+    def from_string_table(line: Sequence[str]) -> AciL1Interface:
+        line[4] = int(line[4]) if line[4].isdigit() else 0
+        line[5] = int(line[5]) if line[5].isdigit() else 0
 
         return AciL1Interface(*line)
 
