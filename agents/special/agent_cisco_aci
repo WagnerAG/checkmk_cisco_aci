@@ -60,34 +60,6 @@ DEFAULT_SEPARATOR: str = '|'
 # Models                                                                      #
 ###############################################################################
 
-@dataclass
-class AciNode:
-    name: str
-    role: str
-    state: str
-    serial: str
-    node_id: str
-    health: str = "-1"
-    model: str = "unknown"
-    descr: str = ""
-
-    def build_node_output(self) -> Tuple:
-        if self.role == 'controller':
-            node_info = (self.role, self.node_id, self.name, self.state, self.serial,
-                         self.model, self.descr)
-        else:
-            node_info = (self.role, self.node_id, self.name, self.state, self.health,
-                         self.serial, self.model, self.descr)
-
-        node_info = tuple(map(str.strip, node_info))  # sanitize strings
-
-        return node_info
-
-    @property
-    def node_str(self):
-        return f'node-{self.node_id}'
-
-
 class Apic:
 
     def __init__(self, args) -> None:
@@ -154,6 +126,106 @@ class Apic:
     def get_data_from_class(self, aci_class: str) -> List:
         result = self.get_imdata(endpoint=f'class/{aci_class}.json')
         return [item[aci_class]['attributes'] for item in result]
+
+
+@dataclass
+class AciNode:
+    name: str
+    role: str
+    state: str
+    serial: str
+    node_id: str
+    health: str = "-1"
+    model: str = "unknown"
+    descr: str = ""
+
+    def build_node_output(self) -> Tuple:
+        if self.role == 'controller':
+            node_info = (self.role, self.node_id, self.name, self.state, self.serial,
+                         self.model, self.descr)
+        else:
+            node_info = (self.role, self.node_id, self.name, self.state, self.health,
+                         self.serial, self.model, self.descr)
+
+        node_info = tuple(map(str.strip, node_info))  # sanitize strings
+
+        return node_info
+
+    @property
+    def node_str(self):
+        return f'node-{self.node_id}'
+
+
+@dataclass
+class AciTenant:
+    """
+    # Representes ACI `fvTenant` with health
+
+    imdata object returned from the fabric looks like this (comments added from the docs):
+    ```
+    {
+        "fvTenant": {   # A policy owner in the virtual fabric. A tenant can be either a private or a shared entity.
+                        # For example, you can create a tenant with contexts and bridge domains shared by other tenants.
+                        # A shared type of tenant is typically named common, default, or infra.
+            "attributes": {
+                "annotation": "",                               # NO COMMENTS
+                "childAction": "",                              # Delete or ignore. For internal use only.
+                "descr": "Management Tenant",                   # The description of the tenant
+                "dn": "uni/tn-LAB",                             # A tag or metadata is a non-hierarchical keyword or term assigned to the fabric module
+                "extMngdBy": "",                                # NO COMMENTS
+                "lcOwn": "local",                               # A value that indicates how this object was created. For internal use only.
+                "modTs": "2021-04-29T14:11:09.104+01:00",       # The time when this object was last modified
+                "monPolDn": "uni/tn-common/monepg-default",     # Monitoring policy attached to this observable object
+                "name": "LAB",                                  # The name of the tenant
+                "nameAlias": "",                                # NO COMMENTS
+                "ownerKey": "",                                 # The key for enabling clients to own their data for entity correlation
+                "ownerTag": "",                                 # A tag for enabling clients to add their own data. For example, to indicate who created this object.
+                "status": "",                                   # The upgrade status. This property is for internal use only.
+                "uid": "15374"                                  # A unique identifier for this object
+            },
+
+            "children": [
+                {
+                    "healthInst": {
+                        "attributes": {
+                            "childAction": "",      # Delete or ignore. For internal use only.
+                            "chng": "1",            # The percentage change of the current value compared to the previous value
+                            "cur": "98",            # The current value of the health score
+                            "maxSev": "cleared",    # The percentage change of the current value compared to the previous value
+                            "prev": "97",           # Holds the previous value of the health score
+                            "rn": "health",         # Identifies an object from its siblings within the context of its parent object. The distinguished name contains a sequence of relative names. 
+                            "status": "",           # The upgrade status. This property is for internal use only
+                            "twScore": "98",        # The minimum value reached
+                            "updTs": "2022-11-20T20:12:49.920+01:00" . # Indicates timestamp when the health score was last updated
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    ```
+    """
+    name: str
+    descr: str
+    dn: str
+    health_score: str
+
+    @staticmethod
+    def get_header():
+        return '#' + (DEFAULT_SEPARATOR.join([
+            'name',
+            'descr',
+            'dn',
+            'health_score',
+        ]))
+
+    def __repr__(self):
+        return DEFAULT_SEPARATOR.join(str(s) for s in [
+            self.name,
+            self.descr,
+            self.dn,
+            self.health_score,
+        ])
 
 
 class PhysicalInterfaces(NamedTuple):
@@ -354,6 +426,25 @@ def get_aci_health(apic: Apic):
     return int(health_score)
 
 
+def get_tenants(apic: Apic) -> List[AciTenant]:
+    imdata = apic.get_imdata('node/class/fvTenant.json?rsp-subtree-include=health')
+    tenants = []
+
+    for fv_tenant in imdata:
+        tenant_attr = fv_tenant['fvTenant']['attributes']
+        tenant_children = fv_tenant['fvTenant']['children']
+        health_attr = next(child['healthInst']['attributes'] for child in tenant_children if 'healthInst' in child)
+
+        tenants.append(AciTenant(
+            name=tenant_attr['name'],
+            descr=tenant_attr['descr'],
+            dn=tenant_attr['dn'],
+            health_score=health_attr['cur'],
+        ))
+
+    return tenants
+
+
 def get_nodes(apic: Apic) -> Dict:
     response = apic.session.get(apic.url + 'node/class/topSystem.json?query-target=self&rsp-subtree=children&'
                                 'rsp-subtree-class=eqptCh&rsp-subtree-include=health')
@@ -537,6 +628,15 @@ def output_aci_health(apic):
         writer.append(DEFAULT_SEPARATOR.join(('health', str(health_score), *get_faults(apic.session, apic.url))))
 
 
+def output_tenants(apic: Apic):
+    tenants: List[AciTenant] = get_tenants(apic)
+
+    with SectionWriter('aci_tenants', separator=DEFAULT_SEPARATOR) as writer:
+        writer.append(AciTenant.get_header())
+        for tenant in tenants:
+            writer.append(tenant)
+
+
 def output_aci_version(url, session):
     versions = get_versions(session, url)
 
@@ -626,25 +726,32 @@ def agent_cisco_aci_main(args: Args) -> None:
     LOGGING.info("fetch and write health status..")
     output_aci_health(apic)
 
+    LOGGING.info("fetch and write tenants..")
+    output_tenants(apic)
+
     LOGGING.info("fetch and write node info..")
     all_nodes = get_nodes(apic)
     output_aci_nodes(all_nodes)
 
-    output_bgp_peer_entry(apic)
+    if not args.skip_bgp_peer_entry:
+        output_bgp_peer_entry(apic)
 
-    output_fault_inst(apic)
+    if not args.skip_fault_inst:
+        output_fault_inst(apic)
 
-    output_iface_stats(
-        apic, args.only_iface_admin_up,
-        aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
-        dns_domain=args.dns_domain,
-    )
+    if not args.skip_l1_phys_if:
+        output_iface_stats(
+            apic, args.only_iface_admin_up,
+            aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
+            dns_domain=args.dns_domain,
+        )
 
-    output_dom_rx_pwr_stats(
-        apic,
-        aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
-        dns_domain=args.dns_domain,
-    )
+    if not args.skip_dom_pwr_stats:
+        output_dom_rx_pwr_stats(
+            apic,
+            aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
+            dns_domain=args.dns_domain,
+        )
 
     LOGGING.info("all done. cheers.")
 
@@ -664,10 +771,18 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
     parser.add_argument('--only-iface-admin-up', action="store_true", required=False, default=False,
                         help='Only monitor interfaces in admin state "up"')
 
+    parser.add_argument('--skip-bgp-peer-entry', action="store_true", required=False, default=False,
+                        help='skip processing section aci_bgp_peer_entry')
+    parser.add_argument('--skip-fault-inst', action="store_true", required=False, default=False,
+                        help='skip processing section aci_fault_inst')
+    parser.add_argument('--skip-l1-phys-if', action="store_true", required=False, default=False,
+                        help='skip processing section aci_l1_phys_if')
+    parser.add_argument('--skip-dom-pwr-stats', action="store_true", required=False, default=False,
+                        help='skip processing section aci_dom_pwr_stats')
+
     return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
     """Main entry point to be used"""
     special_agent_main(parse_arguments, agent_cisco_aci_main)
-

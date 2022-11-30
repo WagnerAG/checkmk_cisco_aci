@@ -30,6 +30,7 @@ from cmk.gui.valuespec import (
     TextInput,
     ListOfStrings,
     Checkbox,  # this may be renamed to Boolean in the future accordinig a comment in source code
+    ListChoice,
 )
 from cmk.gui.plugins.wato.datasource_programs import RulespecGroupDatasourceProgramsHardware
 
@@ -45,14 +46,6 @@ def _valuespec_special_agents_cisco_aci():
                     orientation="vertical",
                     help=_('multiple Controller IPs are accepted'),
                     allow_empty=False,
-                )
-            ),
-            (
-                'dns-domain',
-                TextInput(
-                    title=_('DNS domain (for piggyback)'),
-                    help=_('This value is appended to each piggyback host. Use it in case hosts in Check MK use fqdn'),
-                    allow_empty=True,
                 )
             ),
             (
@@ -76,8 +69,30 @@ def _valuespec_special_agents_cisco_aci():
                     default_value=True,
                 )
             ),
+            (
+                'dns-domain',
+                TextInput(
+                    title=_('DNS domain (for piggyback)'),
+                    help=_('This value is appended to each piggyback host. Use it in case hosts in Check MK use fqdn'),
+                    allow_empty=True,
+                )
+            ),
+            (
+                'skip-sections',
+                ListChoice(
+                    title=_('agent sections to be skipped'),
+                    help=_('the specified sections will not be fetched, hence the special agent gets more efficient'),
+                    choices=[
+                        (1, 'aci_bgp_peer_entry'),
+                        (2, 'aci_fault_inst'),
+                        (3, 'aci_l1_phys_if'),
+                        (4, 'aci_dom_pwr_stats'),
+                    ],
+                    default_value=[],
+                ),
+            ),
         ],
-        optional_keys=['dns-domain'],
+        optional_keys=['dns-domain', 'skip-sections'],
     )
 
 

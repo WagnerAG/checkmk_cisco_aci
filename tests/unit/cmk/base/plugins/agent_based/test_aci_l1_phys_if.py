@@ -104,7 +104,7 @@ L1_INTERFACES: List[AciL1Interface] = {
                 ['topology/pod-1/node-101/sys/phys-[eth1/3]', 'eth1/3', 'up', 'Layer3', '131', '0', 'up', '40G'],
                 ['topology/pod-1/node-101/sys/phys-[eth1/4]', 'eth1/4', 'up', 'Layer3', '289', '217', 'up', '100G'],
                 ['topology/pod-1/node-101/sys/phys-[eth1/5]', 'eth1/5', 'up', 'Layer3', '12', '0', 'up', '100G'],
-                ['topology/pod-1/node-101/sys/phys-[nsa1/1]', 'nsa1/1', 'up', 'Layer9', '0', '0', 'up', '10T'],
+                ['topology/pod-1/node-101/sys/phys-[nsa1/1]', 'nsa1/1', 'up', 'Layer9', 'None', 'None', 'up', '10T'],
             ],
             L1_INTERFACES,
         ),

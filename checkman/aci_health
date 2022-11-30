@@ -1,16 +1,16 @@
 title: ACI health
 agents: special
 catalog: hw
-license: GPL
+license: GPLv2
 distribution: check_mk
 description:
  ACI health Check:
- '/api/node/mo/topology/health.json'
- '/api/node/mo/fltCnts.json'
+ {'/api/node/mo/topology/health.json'}
+ {'/api/node/mo/fltCnts.json'}
 
  There are configurable {{WARN}} and {{CRIT}} thresholds for the health value.
 
-inventory:
+discovery:
  A single service for the Fabric Health Score will be inventorized.
 
 changelog:
