@@ -20,6 +20,7 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 """
 
 from __future__ import annotations
+from contextlib import suppress
 from dataclasses import dataclass
 
 import time
@@ -46,6 +47,18 @@ DEFAULT_ERROR_LEVELS: Dict = {
     'level_fcs_errors': (0.01, 1.0),
     'level_crc_errors': (1.0, 12.0),
     'level_stomped_crc_errors': (1.0, 12.0),
+}
+
+OPERATIONAL_PORT_STATE = {
+    "unknown": '0',
+    "down": '1',
+    "up": '2',
+    "link-up": '3',
+    "channel-admin-down": '4',
+}
+ADMIN_PORT_STATE = {
+    "up": '1',
+    "down": '2',
 }
 
 
@@ -175,6 +188,16 @@ class AciL1Interface:
             f'Stomped CRC errors: {round(self.rates.stomped_crc, ROUND_TO_DIGITS)}/min ({self.stomped_crc} errors in total)'
         )
 
+    @property
+    def port_admin_state(self) -> int:
+        """return port admin state as int"""
+        return ADMIN_PORT_STATE.get(self.admin_state)
+
+    @property
+    def port_oper_state(self) -> int:
+        """return port oper state as int"""
+        return OPERATIONAL_PORT_STATE.get(self.op_state)
+
 
 def parse_aci_l1_phys_if(string_table) -> Dict[str, AciL1Interface]:
     return {line[1]: AciL1Interface.from_string_table(line) for line in string_table
@@ -187,13 +210,56 @@ register.agent_section(
 )
 
 
-def discover_aci_l1_phys_if(section: Dict[str, AciL1Interface]) -> DiscoveryResult:
+def pad_interface_id(interface_id: str):
+    """pad the last part of the interface id with zero, so it will be a three digit number"""
+    return '/'.join(interface_id.split('/')[:-1]) + '/' + interface_id.split('/')[-1].zfill(3)
+
+
+def unpad_interface_id(interface_id: str):
+    """pad the last part of the interface id with zero, so it will be a three digit number"""
+    suffix = interface_id.split('/')[-1].lstrip('0')
+    return '/'.join(interface_id.split('/')[:-1]) + '/' + (suffix if suffix else '0')  # handle case of eth0
+
+
+def _check_port_state(port_matching_condition: Dict, interface: AciL1Interface) -> bool:
+    admin_states = port_matching_condition.get('port_admin_states', [*ADMIN_PORT_STATE.values()])
+    oper_states = port_matching_condition.get('port_oper_states', [*OPERATIONAL_PORT_STATE.values()])
+
+    return (interface.port_admin_state in admin_states) and (interface.port_oper_state in oper_states)
+
+
+def _check_interface_discovery(params: Dict, interface_id: str, interface: AciL1Interface) -> Optional[str]:
+    """for example values for param, see tests"""
+
+    with suppress(LookupError):
+        # check if we want to detect interfaces at all
+        if not params['discovery_single'][0]:
+            return None
+
+        # check if we want to pad port numbers with zeros
+        if params['discovery_single'][1]['pad_portnumbers']:
+            interface_id = pad_interface_id(interface_id)
+
+        # check if we detect ports only on certain condition
+        # value is False if we shall apply a filtering
+        if not params['matching_conditions'][0]:
+            port_matching_condition = params['matching_conditions'][1]
+            if not _check_port_state(port_matching_condition, interface):
+                # and return None if it does not match
+                return None
+
+    return interface_id
+
+
+def discover_aci_l1_phys_if(params, section: Dict[str, AciL1Interface]) -> DiscoveryResult:
     for interface_id in section.keys():
-        yield Service(item=interface_id)
+        interface_id = _check_interface_discovery(params, interface_id, section.get(interface_id))
+        if interface_id:
+            yield Service(item=interface_id)
 
 
 def check_aci_l1_phys_if(item: str, params: Dict, section: Dict[str, AciL1Interface]) -> CheckResult:
-    interface: AciL1Interface = section.get(item)
+    interface: AciL1Interface = section.get(unpad_interface_id(item))
 
     if not interface:
         yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
@@ -209,6 +275,8 @@ register.check_plugin(
     service_name='L1 phys interface %s',
     discovery_function=discover_aci_l1_phys_if,
     check_function=check_aci_l1_phys_if,
+    discovery_ruleset_name='cisco_aci_if_discovery',
+    discovery_default_parameters={},
     check_ruleset_name='aci_l1_phys_if_levels',
     check_default_parameters=DEFAULT_ERROR_LEVELS,
 )
