@@ -24,6 +24,7 @@
             'aci_dom_pwr_stats',
             'aci_fault_inst',
             'aci_health',
+            'aci_l1_phys_if',
             'aci_leaf',
             'aci_spine',
             'aci_tenants',
