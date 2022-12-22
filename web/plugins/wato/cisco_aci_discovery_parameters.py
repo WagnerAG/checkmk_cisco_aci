@@ -147,7 +147,7 @@ def _vs_matching_conditions():
                                 ),
                                 choices=_oper_states(),
                                 toggle_all=True,
-                                default_value=["1"],
+                                default_value=["2"],
                             ),
                         ),
                         (
@@ -160,7 +160,7 @@ def _vs_matching_conditions():
                                 ),
                                 choices=_admin_states(),
                                 toggle_all=True,
-                                default_value=["1", "2", "3"],
+                                default_value=["1"],
                             ),
                         ),
                     ],
