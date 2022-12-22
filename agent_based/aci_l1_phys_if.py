@@ -39,7 +39,7 @@ from .agent_based_api.v1 import (
     get_rate,
     get_value_store,
 )
-from .aci_general import convert_rate
+from .aci_general import convert_rate, pad_interface_id, unpad_interface_id
 
 
 ROUND_TO_DIGITS: int = 2
@@ -208,17 +208,6 @@ register.agent_section(
     name='aci_l1_phys_if',
     parse_function=parse_aci_l1_phys_if,
 )
-
-
-def pad_interface_id(interface_id: str):
-    """pad the last part of the interface id with zero, so it will be a three digit number"""
-    return '/'.join(interface_id.split('/')[:-1]) + '/' + interface_id.split('/')[-1].zfill(3)
-
-
-def unpad_interface_id(interface_id: str):
-    """pad the last part of the interface id with zero, so it will be a three digit number"""
-    suffix = interface_id.split('/')[-1].lstrip('0')
-    return '/'.join(interface_id.split('/')[:-1]) + '/' + (suffix if suffix else '0')  # handle case of eth0
 
 
 def _check_port_state(port_matching_condition: Dict, interface: AciL1Interface) -> bool:

@@ -41,3 +41,14 @@ def to_int(value: str) -> int:
     with suppress(ValueError):
         return int(value)
     return 0
+
+
+def pad_interface_id(interface_id: str):
+    """pad the last part of the interface id with zero, so it will be a three digit number"""
+    return '/'.join(interface_id.split('/')[:-1]) + '/' + interface_id.split('/')[-1].zfill(3)
+
+
+def unpad_interface_id(interface_id: str):
+    """pad the last part of the interface id with zero, so it will be a three digit number"""
+    suffix = interface_id.split('/')[-1].lstrip('0')
+    return '/'.join(interface_id.split('/')[:-1]) + '/' + (suffix if suffix else '0')  # handle case of eth0
