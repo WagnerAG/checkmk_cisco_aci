@@ -24,7 +24,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 
 import time
-from typing import Dict, NamedTuple, Optional, Tuple, Sequence
+from typing import Dict, NamedTuple, Optional, Tuple, Sequence, List
 
 from .agent_based_api.v1.type_defs import (
     CheckResult,
@@ -34,6 +34,7 @@ from .agent_based_api.v1 import (
     register,
     Result,
     Service,
+    ServiceLabel,
     State,
     Metric,
     get_rate,
@@ -217,13 +218,16 @@ def _check_port_state(port_matching_condition: Dict, interface: AciL1Interface) 
     return (interface.port_admin_state in admin_states) and (interface.port_oper_state in oper_states)
 
 
-def _check_interface_discovery(params: Dict, interface_id: str, interface: AciL1Interface) -> Optional[str]:
+def _check_interface_discovery(params: Dict, interface_id: str, interface: AciL1Interface) -> Tuple[Optional[str], List[ServiceLabel]]:
     """for example values for param, see tests"""
-
+    labels = {}
     with suppress(LookupError):
         # check if we want to detect interfaces at all
         if not params['discovery_single'][0]:
-            return None
+            return None, []
+
+        # get labels
+        labels = params['discovery_single'][1].get('labels', {})
 
         # check if we want to pad port numbers with zeros
         if params['discovery_single'][1]['pad_portnumbers']:
@@ -235,16 +239,16 @@ def _check_interface_discovery(params: Dict, interface_id: str, interface: AciL1
             port_matching_condition = params['matching_conditions'][1]
             if not _check_port_state(port_matching_condition, interface):
                 # and return None if it does not match
-                return None
+                return None, []
 
-    return interface_id
+    return interface_id, [ServiceLabel(k, v) for k, v in labels.items()]
 
 
 def discover_aci_l1_phys_if(params, section: Dict[str, AciL1Interface]) -> DiscoveryResult:
     for interface_id in section.keys():
-        interface_id = _check_interface_discovery(params, interface_id, section.get(interface_id))
+        interface_id, labels = _check_interface_discovery(params, interface_id, section.get(interface_id))
         if interface_id:
-            yield Service(item=interface_id)
+            yield Service(item=interface_id, labels=labels)
 
 
 def check_aci_l1_phys_if(item: str, params: Dict, section: Dict[str, AciL1Interface]) -> CheckResult:

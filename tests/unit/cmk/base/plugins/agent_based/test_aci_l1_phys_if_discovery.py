@@ -16,7 +16,7 @@ from typing import Tuple, List, Dict
 
 import pytest
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import Service
+from cmk.base.plugins.agent_based.agent_based_api.v1 import Service, ServiceLabel
 from cmk.base.plugins.agent_based.aci_l1_phys_if import (
     discover_aci_l1_phys_if,
     AciL1Interface,
@@ -130,13 +130,13 @@ L1_INTERFACES: List[AciL1Interface] = {
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': False}),
+                'discovery_single': (True, {'labels': {'os': 'aci_büchse'}, 'pad_portnumbers': False}),
                 'matching_conditions': (False, {'port_oper_states': ['1']})
             },
             L1_INTERFACES,
             (
-                Service(item='eth1/33'),
-                Service(item='eth1/34'),
+                Service(item='eth1/33', labels=[ServiceLabel('os', 'aci_büchse')]),
+                Service(item='eth1/34', labels=[ServiceLabel('os', 'aci_büchse')]),
             ),
         ),
         (
@@ -161,12 +161,12 @@ L1_INTERFACES: List[AciL1Interface] = {
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': False}),
+                'discovery_single': (True, {'labels': {'fancy_level': 'pretty_fancy', 'tech': 'sdn'}, 'pad_portnumbers': False}),
                 'matching_conditions': (False, {'port_oper_states': ['3']})
             },
             L1_INTERFACES,
             (
-                Service(item='eth1/3'),
+                Service(item='eth1/3', labels=[ServiceLabel('fancy_level', 'pretty_fancy'), ServiceLabel('tech', 'sdn')]),
             ),
         ),
         (

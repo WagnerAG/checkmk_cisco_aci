@@ -34,8 +34,8 @@ def _vs_single_discovery():
                             "pad_portnumbers",
                             DropdownChoice(
                                 choices=[
-                                    (True, _("Pad port numbers with zeros")),
                                     (False, _("Do not pad")),
+                                    (True, _("Pad port numbers with zeros")),
                                 ],
                                 title=_("Port numbers"),
                                 help=_(
