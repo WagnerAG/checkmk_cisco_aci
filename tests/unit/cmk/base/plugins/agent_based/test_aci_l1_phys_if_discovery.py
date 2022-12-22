@@ -18,13 +18,11 @@ import pytest
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import Service, ServiceLabel
 from cmk.base.plugins.agent_based.aci_l1_phys_if import (
+    DEFAULT_DISCOVERY_PARAMS,
     discover_aci_l1_phys_if,
     AciL1Interface,
-    pad_interface_id,
-    format_interface_id,
-    get_orig_interface_id,
-    DEFAULT_DISCOVERY_PARAMS,
 )
+from cmk.base.plugins.agent_based.aci_general import pad_interface_id, format_interface_id, get_orig_interface_id
 
 
 L1_INTERFACES: List[AciL1Interface] = {
@@ -168,7 +166,7 @@ L1_INTERFACES: List[AciL1Interface] = {
         (
             {
                 'discovery_single': (True, {
-                    'labels': {'fancy_level': 'pretty_fancy', 'tech': 'sdn'}, 
+                    'labels': {'fancy_level': 'pretty_fancy', 'tech': 'sdn'},
                     'long_if_name': False,
                     'pad_portnumbers': False
                 }),
