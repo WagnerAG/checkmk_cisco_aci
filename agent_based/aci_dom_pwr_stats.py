@@ -21,7 +21,8 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 
 from __future__ import annotations
 from enum import Enum, unique
-from typing import List, NamedTuple, Sequence, Tuple
+from typing import List, NamedTuple, Sequence, Tuple, Dict, Optional
+from contextlib import suppress
 import re
 
 from .agent_based_api.v1.type_defs import (
@@ -35,6 +36,7 @@ from .agent_based_api.v1 import (
     Service,
     State,
 )
+from .aci_general import pad_interface_id, unpad_interface_id
 
 
 @unique
@@ -135,14 +137,33 @@ register.agent_section(
 )
 
 
-def discover_aci_dom_pwr_stats(section: List[DomPowerStat]) -> DiscoveryResult:
+def _check_interface_discovery(params: Dict, pwr_stat: DomPowerStat) -> Optional[str]:
+    """for example values for param, see tests"""
+
+    interface_id: str = pwr_stat.interface
+
+    with suppress(LookupError):
+        # check if we want to detect interfaces at all
+        if not params['discovery_single'][0]:
+            return None
+
+        # check if we want to pad port numbers with zeros
+        if params['discovery_single'][1]['pad_portnumbers']:
+            interface_id = pad_interface_id(interface_id)
+
+    return interface_id
+
+
+def discover_aci_dom_pwr_stats(params, section: List[DomPowerStat]) -> DiscoveryResult:
     for pwr_stat in section:
-        yield Service(item=pwr_stat.interface)
+        interface_id = _check_interface_discovery(params, pwr_stat)
+        if interface_id:
+            yield Service(item=interface_id)
 
 
 def check_aci_dom_pwr_stats(item: str, section: List[DomPowerStat]) -> CheckResult:
     for stat in section:
-        if item == stat.interface:
+        if unpad_interface_id(item) == stat.interface:
             for s in (stat.rx, stat.tx):
 
                 yield Result(state=s.state, notice=s.summary, details=s.details)
@@ -163,4 +184,6 @@ register.check_plugin(
     service_name='DOM Power %s',
     discovery_function=discover_aci_dom_pwr_stats,
     check_function=check_aci_dom_pwr_stats,
+    discovery_ruleset_name='cisco_aci_if_discovery',
+    discovery_default_parameters={},
 )
