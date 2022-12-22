@@ -47,6 +47,23 @@ def _vs_single_discovery():
                             ),
                         ),
                         (
+                            "long_if_name",
+                            DropdownChoice(
+                                choices=[
+                                    (True, _("Use long interface name")),
+                                    (False, _("Use short interface name")),
+                                ],
+                                title=_("Interface name"),
+                                help=_(
+                                    "If this option is activated, checkmk will reformat the "
+                                    "network interface name from the short name 'eth' to a long "
+                                    "representation 'Ethernet', so the sorting in the view with "
+                                    "other checks like 'if64' (SNMP) or 'aci_l1_phys_if' is "
+                                    "consistent."
+                                ),
+                            ),
+                        ),
+                        (
                             "labels",
                             Labels(
                                 world=Labels.World.CONFIG,

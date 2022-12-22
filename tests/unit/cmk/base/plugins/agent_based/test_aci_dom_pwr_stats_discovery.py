@@ -16,12 +16,13 @@ from typing import Tuple, List, Dict
 
 import pytest
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import Service
+from cmk.base.plugins.agent_based.agent_based_api.v1 import Service, ServiceLabel
 from cmk.base.plugins.agent_based.aci_dom_pwr_stats import (
     discover_aci_dom_pwr_stats,
     DomPowerStat,
     DomPowerStatValues,
     PowerStatType,
+    DEFAULT_DISCOVERY_PARAMS,
 )
 
 
@@ -72,19 +73,19 @@ SECTION_2: List = [
     "params, section, expected_discovery_result",
     [
         (
-            {},
+            DEFAULT_DISCOVERY_PARAMS,
             SECTION_1,
             (
-                Service(item='eth1/3'),
+                Service(item='Ethernet1/3'),
             ),
         ),
         (
-            {},
+            DEFAULT_DISCOVERY_PARAMS,
             SECTION_2,
             (
-                Service(item='eth1/1'),
-                Service(item='eth1/11'),
-                Service(item='eth11/21/102'),
+                Service(item='Ethernet1/1'),
+                Service(item='Ethernet1/11'),
+                Service(item='Ethernet11/21/102'),
             ),
         ),
         (
@@ -97,19 +98,23 @@ SECTION_2: List = [
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': False}),
+                'discovery_single': (True, {
+                    'long_if_name': False,
+                    'pad_portnumbers': False,
+                    'labels': {'os': 'aci_büchse'},
+                }),
                 'matching_conditions': (False, {'port_admin_states': ['2']})  # no effect for this check
             },
             SECTION_2,
             (
-                Service(item='eth1/1'),
-                Service(item='eth1/11'),
-                Service(item='eth11/21/102'),
+                Service(item='eth1/1', labels=[ServiceLabel('os', 'aci_büchse')]),
+                Service(item='eth1/11', labels=[ServiceLabel('os', 'aci_büchse')]),
+                Service(item='eth11/21/102', labels=[ServiceLabel('os', 'aci_büchse')]),
             ),
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': True}),
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': True}),
                 'matching_conditions': (False, {'port_admin_states': ['1']})  # no effect for this check
             },
             SECTION_2,

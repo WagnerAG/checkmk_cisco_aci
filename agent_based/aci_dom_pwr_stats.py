@@ -22,7 +22,6 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 from __future__ import annotations
 from enum import Enum, unique
 from typing import List, NamedTuple, Sequence, Tuple, Dict, Optional
-from contextlib import suppress
 import re
 
 from .agent_based_api.v1.type_defs import (
@@ -34,9 +33,15 @@ from .agent_based_api.v1 import (
     check_levels,
     Result,
     Service,
+    ServiceLabel,
     State,
 )
-from .aci_general import pad_interface_id, unpad_interface_id
+from .aci_general import (
+    get_max_if_padding,
+    get_discovery_item_name,
+    get_orig_interface_id,
+    DEFAULT_DISCOVERY_PARAMS,
+)
 
 
 @unique
@@ -116,6 +121,10 @@ class DomPowerStat(NamedTuple):
             tx=DomPowerStatValues.from_string_table(PowerStatType.TX, line[8:]),
         )
 
+    @property
+    def id_length(self) -> int:
+        return len(self.interface.split('/')[-1].lower().replace('eth', ''))
+
 
 def parse_aci_dom_pwr_stats(string_table) -> List[DomPowerStat]:
     """
@@ -137,33 +146,21 @@ register.agent_section(
 )
 
 
-def _check_interface_discovery(params: Dict, pwr_stat: DomPowerStat) -> Optional[str]:
+def _get_discovery_item_name(params: Dict, interface_id: str, pad_length: int) -> Tuple[Optional[str], List[ServiceLabel]]:
     """for example values for param, see tests"""
-
-    interface_id: str = pwr_stat.interface
-
-    with suppress(LookupError):
-        # check if we want to detect interfaces at all
-        if not params['discovery_single'][0]:
-            return None
-
-        # check if we want to pad port numbers with zeros
-        if params['discovery_single'][1]['pad_portnumbers']:
-            interface_id = pad_interface_id(interface_id)
-
-    return interface_id
+    return get_discovery_item_name(params, interface_id, pad_length)
 
 
 def discover_aci_dom_pwr_stats(params, section: List[DomPowerStat]) -> DiscoveryResult:
     for pwr_stat in section:
-        interface_id = _check_interface_discovery(params, pwr_stat)
+        interface_id, labels = _get_discovery_item_name(params, pwr_stat.interface, pad_length=get_max_if_padding(section))
         if interface_id:
-            yield Service(item=interface_id)
+            yield Service(item=interface_id, labels=labels)
 
 
 def check_aci_dom_pwr_stats(item: str, section: List[DomPowerStat]) -> CheckResult:
     for stat in section:
-        if unpad_interface_id(item) == stat.interface:
+        if get_orig_interface_id(item) == stat.interface:
             for s in (stat.rx, stat.tx):
 
                 yield Result(state=s.state, notice=s.summary, details=s.details)
@@ -181,9 +178,9 @@ def check_aci_dom_pwr_stats(item: str, section: List[DomPowerStat]) -> CheckResu
 
 register.check_plugin(
     name='aci_dom_pwr_stats',
-    service_name='DOM Power %s',
+    service_name='Interface %s DOM Power',
     discovery_function=discover_aci_dom_pwr_stats,
     check_function=check_aci_dom_pwr_stats,
     discovery_ruleset_name='cisco_aci_if_discovery',
-    discovery_default_parameters={},
+    discovery_default_parameters=DEFAULT_DISCOVERY_PARAMS,
 )

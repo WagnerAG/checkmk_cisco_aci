@@ -21,7 +21,9 @@ from cmk.base.plugins.agent_based.aci_l1_phys_if import (
     discover_aci_l1_phys_if,
     AciL1Interface,
     pad_interface_id,
-    unpad_interface_id,
+    format_interface_id,
+    get_orig_interface_id,
+    DEFAULT_DISCOVERY_PARAMS,
 )
 
 
@@ -62,30 +64,30 @@ L1_INTERFACES: List[AciL1Interface] = {
     "params, section, expected_services",
     [
         (
-            {},
+            DEFAULT_DISCOVERY_PARAMS,
             L1_INTERFACES,
             (
-                Service(item='eth1/33'),
-                Service(item='eth1/34'),
-                Service(item='eth1/1'),
-                Service(item='eth1/2'),
-                Service(item='eth1/3'),
-                Service(item='eth1/4'),
+                Service(item='Ethernet1/33'),
+                Service(item='Ethernet1/34'),
+                Service(item='Ethernet1/1'),
+                Service(item='Ethernet1/2'),
+                Service(item='Ethernet1/3'),
+                Service(item='Ethernet1/4'),
             ),
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': True}),
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': True}),
                 'matching_conditions': (True, {})
             },
             L1_INTERFACES,
             (
-                Service(item='eth1/033'),
-                Service(item='eth1/034'),
-                Service(item='eth1/001'),
-                Service(item='eth1/002'),
-                Service(item='eth1/003'),
-                Service(item='eth1/004'),
+                Service(item='eth1/33'),
+                Service(item='eth1/34'),
+                Service(item='eth1/01'),
+                Service(item='eth1/02'),
+                Service(item='eth1/03'),
+                Service(item='eth1/04'),
             ),
         ),
         (
@@ -98,17 +100,17 @@ L1_INTERFACES: List[AciL1Interface] = {
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': False}),
+                'discovery_single': (True, {'long_if_name': True, 'pad_portnumbers': False}),
                 'matching_conditions': (False, {'port_admin_states': ['2']})
             },
             L1_INTERFACES,
             (
-                Service(item='eth1/34'),
+                Service(item='Ethernet1/34'),
             ),
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': False}),
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': False}),
                 'matching_conditions': (False, {'port_admin_states': ['1']})
             },
             L1_INTERFACES,
@@ -122,7 +124,7 @@ L1_INTERFACES: List[AciL1Interface] = {
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': False}),
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': False}),
                 'matching_conditions': (False, {'port_admin_states': ['2'], 'port_oper_states': ['2']})
             },
             L1_INTERFACES,
@@ -130,7 +132,11 @@ L1_INTERFACES: List[AciL1Interface] = {
         ),
         (
             {
-                'discovery_single': (True, {'labels': {'os': 'aci_büchse'}, 'pad_portnumbers': False}),
+                'discovery_single': (True, {
+                    'long_if_name': False,
+                    'labels': {'os': 'aci_büchse'},
+                    'pad_portnumbers': False,
+                }),
                 'matching_conditions': (False, {'port_oper_states': ['1']})
             },
             L1_INTERFACES,
@@ -141,7 +147,7 @@ L1_INTERFACES: List[AciL1Interface] = {
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': False}),
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': False}),
                 'matching_conditions': (False, {'port_oper_states': ['2']})
             },
             L1_INTERFACES,
@@ -151,7 +157,7 @@ L1_INTERFACES: List[AciL1Interface] = {
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': False}),
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': False}),
                 'matching_conditions': (False, {'port_oper_states': ['0']})
             },
             L1_INTERFACES,
@@ -161,7 +167,11 @@ L1_INTERFACES: List[AciL1Interface] = {
         ),
         (
             {
-                'discovery_single': (True, {'labels': {'fancy_level': 'pretty_fancy', 'tech': 'sdn'}, 'pad_portnumbers': False}),
+                'discovery_single': (True, {
+                    'labels': {'fancy_level': 'pretty_fancy', 'tech': 'sdn'}, 
+                    'long_if_name': False,
+                    'pad_portnumbers': False
+                }),
                 'matching_conditions': (False, {'port_oper_states': ['3']})
             },
             L1_INTERFACES,
@@ -171,7 +181,7 @@ L1_INTERFACES: List[AciL1Interface] = {
         ),
         (
             {
-                'discovery_single': (True, {'pad_portnumbers': False}),
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': False}),
                 'matching_conditions': (False, {'port_oper_states': ['4']})
             },
             L1_INTERFACES,
@@ -196,9 +206,9 @@ def test_discover_aci_l1_phys_if(params: Dict, section: Dict[str, AciL1Interface
         ('eth1/3/67', 'eth1/3/067'),
         ('eth4/3/34/023/324/67', 'eth4/3/34/023/324/067'),
         ('eth0/0', 'eth0/000'),
-        ('Ethernet3/100', 'Ethernet3/100'),
     ],
 )
 def test_interface_padding(item: str, result: str) -> None:
     assert pad_interface_id(item) == result
-    assert unpad_interface_id(pad_interface_id(item)) == item
+    assert get_orig_interface_id(item) == item
+    assert get_orig_interface_id(pad_interface_id(format_interface_id(item))) == item
