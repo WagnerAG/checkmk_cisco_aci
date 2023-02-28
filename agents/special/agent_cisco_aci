@@ -300,8 +300,12 @@ class InterfaceDetails(NamedTuple):
         ])
 
     @property
-    def node_str(self):
+    def node_str(self) -> str:
         return self.dn.split('/')[2]
+
+    @property
+    def phys_dn(self) -> str:
+        return f'{self.dn}/phys'
 
 
 @unique
@@ -577,6 +581,19 @@ def get_pwr_stats(apic: Apic, aci_nodes: Dict):
     return pwr_stats_by_node
 
 
+def __prepare_iface_lookup_table(iface_stats: Dict[str, List[InterfaceDetails]]):
+    """DOM PWR stats do not return oper_state of an interface (only admin_state)
+    We want to map the results from l1_phys_if and provide a lookup table to easily
+    get the operatial state of an interface.
+    """
+    oper_states: Dict[str, Dict[str, str]] = {}
+
+    for aci_node, iface_details in iface_stats.items():
+        oper_states[aci_node] = {iface.phys_dn: iface.op_state for iface in iface_details}
+
+    return oper_states
+
+
 ###############################################################################
 # General helper functions                                                    #
 ###############################################################################
@@ -584,7 +601,7 @@ def get_pwr_stats(apic: Apic, aci_nodes: Dict):
 def prepare_dict_for_writer(result_obj: Dict, fields: Tuple) -> str:
     def _prepare(field) -> str:
         return str(result_obj.get(field, 'n/a')).replace(DEFAULT_SEPARATOR, '//')
- 
+
     selected_data = [_prepare(field) for field in fields]
     return DEFAULT_SEPARATOR.join(selected_data)
 
@@ -691,8 +708,13 @@ def output_iface_stats(apic: Apic, only_iface_admin_up: bool, aci_nodes: Dict[st
                 for line in iface:
                     writer.append(line)
 
+    return iface_stats
 
-def output_dom_rx_pwr_stats(apic: Apic, aci_nodes: Dict[str, str], dns_domain: str):
+
+def output_dom_rx_pwr_stats(apic: Apic, iface_stats: Dict[str, List[InterfaceDetails]], aci_nodes: Dict[str, str], dns_domain: str):
+    iface_status_lookup_table = __prepare_iface_lookup_table(iface_stats)
+    # decide if we merge the results `pwr_stats_by_node` or if we pass the object `iface_status_lookup_table` to `get_pwr_stats`
+
     section_name: str = 'aci_dom_pwr_stats'
     LOGGING.info(f'fetch and write {section_name} section')
 
@@ -740,7 +762,7 @@ def agent_cisco_aci_main(args: Args) -> None:
         output_fault_inst(apic)
 
     if not args.skip_l1_phys_if:
-        output_iface_stats(
+        iface_stats = output_iface_stats(
             apic, args.only_iface_admin_up,
             aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
             dns_domain=args.dns_domain,
@@ -749,6 +771,7 @@ def agent_cisco_aci_main(args: Args) -> None:
     if not args.skip_dom_pwr_stats:
         output_dom_rx_pwr_stats(
             apic,
+            iface_stats,
             aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
             dns_domain=args.dns_domain,
         )
