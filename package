@@ -24,6 +24,7 @@
             'aci_dom_pwr_stats',
             'aci_fault_inst',
             'aci_health',
+            'aci_l1_phys_if',
             'aci_leaf',
             'aci_spine',
             'aci_tenants',
@@ -37,13 +38,14 @@
         'web': [
             'plugins/metrics/cisco_aci_metrics.py',
             'plugins/perfometer/cisco_aci_perfometer.py',
+            'plugins/wato/agent_cisco_aci.py',
             'plugins/wato/cisco_aci_check_parameters.py',
-            'plugins/wato/agent_cisco_aci.py'
+            'plugins/wato/cisco_aci_discovery_parameters.py',
         ]
     },
     'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
-    'version': '0.7.11',
+    'version': '0.7.16',
     'version.min_required': '2.0.0',
     'version.packaged': '2.0.0p27'
 }

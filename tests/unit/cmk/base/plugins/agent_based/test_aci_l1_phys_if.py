@@ -138,7 +138,7 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
             ),
         ),
         (
-            'eth1/3',
+            'eth1/003',
             L1_INTERFACES,
             (
                 Result(state=State.CRIT, summary=('state: up/up (admin/op) layer: 3 op_speed: 40G | errors: FCS=0.0/min (0 total) CRC=65.5/min (131 total) stomped_CRC=65.5/min (131 total)'),
@@ -191,6 +191,6 @@ def test_check_aci_l1_phys_if(item: str, section: Dict[str, AciL1Interface], exp
     with patch('cmk.base.plugins.agent_based.aci_l1_phys_if.get_value_store') as mock_get:
         if item:
             timestamp = int((datetime.now() - timedelta(minutes=2)).timestamp())
-            dn = section.get(item).dn
+            dn = section.get('eth1/3' if item == 'eth1/003' else item).dn
             mock_get.return_value = {f'cisco_aci.{dn}.crc': (timestamp, 0.0), f'cisco_aci.{dn}.fcs': (timestamp, 0.0)}
         assert tuple(check_aci_l1_phys_if(item, DEFAULT_ERROR_LEVELS, section)) == expected_check_result

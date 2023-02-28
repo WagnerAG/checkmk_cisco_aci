@@ -16,10 +16,9 @@ from typing import Tuple, List
 
 import pytest
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Service, Metric
+from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Metric
 from cmk.base.plugins.agent_based.aci_dom_pwr_stats import (
     parse_aci_dom_pwr_stats,
-    discover_aci_dom_pwr_stats,
     check_aci_dom_pwr_stats,
     DomPowerStat,
     DomPowerStatValues,
@@ -100,29 +99,6 @@ def test_parse_aci_dom_pwr_stats(string_table: List[List[str]], expected_section
 
 
 @pytest.mark.parametrize(
-    "section, expected_discovery_result",
-    [
-        (
-            SECTION_1,
-            (
-                Service(item='eth1/3'),
-            ),
-        ),
-        (
-            SECTION_2,
-            (
-                Service(item='eth1/1'),
-                Service(item='eth1/11'),
-                Service(item='eth11/21/102'),
-            ),
-        ),
-    ],
-)
-def test_discover_aci_dom_pwr_stats(section: List[DomPowerStat], expected_discovery_result: Tuple) -> None:
-    assert tuple(discover_aci_dom_pwr_stats(section)) == expected_discovery_result
-
-
-@pytest.mark.parametrize(
     "item, section, expected_check_result",
     [
         (
@@ -172,6 +148,20 @@ def test_discover_aci_dom_pwr_stats(section: List[DomPowerStat], expected_discov
                        details='TX alert: none\nTX status: none\nTX hi_alarm: 0.999912\nTX hi_warn: 0.0\nTX lo_alarm: -9.299622\nTX lo_warn: -8.300319\nTX value: -11.031196 (precise)'),
                 Result(state=State.CRIT, summary='TX value: -11.03 (warn/crit below -8.30/-9.30)'),
                 Metric('dom_tx_power', -11.031196, levels=(0.0, 0.999912)),
+            )
+        ),
+        (
+            'eth1/001',
+            SECTION_2,
+            (
+                Result(state=State.OK, notice='RX alert: none, RX status: none',
+                       details='RX alert: none\nRX status: none\nRX hi_alarm: 0.999912\nRX hi_warn: 0.0\nRX lo_alarm: -13.09804\nRX lo_warn: -12.097149\nRX value: -2.599533 (precise)'),
+                Result(state=State.OK, summary='RX value: -2.60'),
+                Metric('dom_rx_power', -2.599533, levels=(0.0, 0.999912)),
+                Result(state=State.OK, notice='TX alert: none, TX status: none',
+                       details='TX alert: none\nTX status: none\nTX hi_alarm: 0.999912\nTX hi_warn: 0.0\nTX lo_alarm: -9.299622\nTX lo_warn: -8.300319\nTX value: -2.731099 (precise)'),
+                Result(state=State.OK, summary='TX value: -2.73'),
+                Metric('dom_tx_power', -2.731099, levels=(0.0, 0.999912)),
             )
         ),
     ],
