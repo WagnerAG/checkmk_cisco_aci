@@ -85,8 +85,7 @@ def _valuespec_special_agents_cisco_aci():
                     choices=[
                         (1, 'aci_bgp_peer_entry'),
                         (2, 'aci_fault_inst'),
-                        (3, 'aci_l1_phys_if'),
-                        (4, 'aci_dom_pwr_stats'),
+                        (3, 'aci_l1_phys_if and aci_dom_pwr_stats'),
                     ],
                     default_value=[],
                 ),

@@ -45,9 +45,7 @@ def agent_cisco_aci_arguments(params, hostname, ipaddress):
         if 2 in skip:
             args += ["--skip-fault-inst"]
         if 3 in skip:
-            args += ["--skip-l1-phys-if"]
-        if 4 in skip:
-            args += ["--skip-dom-pwr-stats"]
+            args += ["--skip-interfaces"]
 
     return args
 
