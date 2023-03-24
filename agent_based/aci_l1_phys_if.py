@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import time
-from typing import Dict, NamedTuple, Optional, Tuple, Sequence, List
+from typing import Dict, NamedTuple, Optional, Tuple, Sequence
 
 from .agent_based_api.v1.type_defs import (
     CheckResult,
@@ -33,7 +33,6 @@ from .agent_based_api.v1 import (
     register,
     Result,
     Service,
-    ServiceLabel,
     State,
     Metric,
     get_rate,
@@ -41,10 +40,12 @@ from .agent_based_api.v1 import (
 )
 from .aci_general import (
     convert_rate,
-    get_discovery_item_name,
     get_orig_interface_id,
     get_max_if_padding,
     DEFAULT_DISCOVERY_PARAMS,
+    check_interface_discovery,
+    ADMIN_PORT_STATE,
+    OPERATIONAL_PORT_STATE,
 )
 
 
@@ -54,19 +55,6 @@ DEFAULT_ERROR_LEVELS: Dict = {
     'level_fcs_errors': (0.01, 1.0),
     'level_crc_errors': (1.0, 12.0),
     'level_stomped_crc_errors': (1.0, 12.0),
-}
-
-OPERATIONAL_PORT_STATE = {
-    "unknown": '0',
-    "down": '1',
-    "up": '2',
-    "link-up": '3',
-    "channel-admin-down": '4',
-}
-
-ADMIN_PORT_STATE = {
-    "up": '1',
-    "down": '2',
 }
 
 
@@ -222,36 +210,9 @@ register.agent_section(
 )
 
 
-def _check_port_state(port_matching_condition: Dict, interface: AciL1Interface) -> bool:
-    admin_states = port_matching_condition.get('port_admin_states', [*ADMIN_PORT_STATE.values()])
-    oper_states = port_matching_condition.get('port_oper_states', [*OPERATIONAL_PORT_STATE.values()])
-
-    return (interface.port_admin_state in admin_states) and (interface.port_oper_state in oper_states)
-
-
-def _check_interface_discovery(
-        params: Dict,
-        interface_id: str,
-        interface: AciL1Interface,
-        pad_length: int,
-) -> Tuple[Optional[str], List[ServiceLabel]]:
-    """for example values for param, see tests"""
-    interface_id, labels = get_discovery_item_name(params, interface_id, pad_length)
-
-    # check if we detect ports only on certain condition
-    # value is False if we shall apply a filtering
-    if not params['matching_conditions'][0]:
-        port_matching_condition = params['matching_conditions'][1]
-        if not _check_port_state(port_matching_condition, interface):
-            # and return None if it does not match
-            return None, []
-
-    return interface_id, labels
-
-
 def discover_aci_l1_phys_if(params, section: Dict[str, AciL1Interface]) -> DiscoveryResult:
     for interface_id in section.keys():
-        interface_id, labels = _check_interface_discovery(
+        interface_id, labels = check_interface_discovery(
             params, interface_id, section.get(interface_id), pad_length=get_max_if_padding(section),
         )
         if interface_id:

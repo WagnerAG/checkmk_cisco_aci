@@ -100,3 +100,46 @@ def get_discovery_item_name(
     labels = params['discovery_single'][1].get('labels', {})
 
     return interface_id, [ServiceLabel(k, v) for k, v in labels.items()]
+
+
+# Port discovery helpers
+
+OPERATIONAL_PORT_STATE = {
+    "unknown": '0',
+    "down": '1',
+    "up": '2',
+    "link-up": '3',
+    "channel-admin-down": '4',
+}
+
+ADMIN_PORT_STATE = {
+    "up": '1',
+    "down": '2',
+}
+
+
+def _check_port_state(port_matching_condition: Dict, interface) -> bool:
+    admin_states = port_matching_condition.get('port_admin_states', [*ADMIN_PORT_STATE.values()])
+    oper_states = port_matching_condition.get('port_oper_states', [*OPERATIONAL_PORT_STATE.values()])
+
+    return (interface.port_admin_state in admin_states) and (interface.port_oper_state in oper_states)
+
+
+def check_interface_discovery(
+        params: Dict,
+        interface_id: str,
+        interface,
+        pad_length: int,
+) -> Tuple[Optional[str], List[ServiceLabel]]:
+    """for example values for param, see tests"""
+    interface_id, labels = get_discovery_item_name(params, interface_id, pad_length)
+
+    # check if we detect ports only on certain condition
+    # value is False if we shall apply a filtering
+    if not params['matching_conditions'][0]:
+        port_matching_condition = params['matching_conditions'][1]
+        if not _check_port_state(port_matching_condition, interface):
+            # and return None if it does not match
+            return None, []
+
+    return interface_id, labels
