@@ -60,6 +60,11 @@ DEFAULT_SEPARATOR: str = '|'
 # Models                                                                      #
 ###############################################################################
 
+class InterfaceStatus(NamedTuple):
+    admin_state: str
+    op_state: str
+
+
 class Apic:
 
     def __init__(self, args) -> None:
@@ -193,7 +198,7 @@ class AciTenant:
                             "cur": "98",            # The current value of the health score
                             "maxSev": "cleared",    # The percentage change of the current value compared to the previous value
                             "prev": "97",           # Holds the previous value of the health score
-                            "rn": "health",         # Identifies an object from its siblings within the context of its parent object. The distinguished name contains a sequence of relative names. 
+                            "rn": "health",         # Identifies an object from its siblings within the context of its parent object. The distinguished name contains a sequence of relative names.
                             "status": "",           # The upgrade status. This property is for internal use only
                             "twScore": "98",        # The minimum value reached
                             "updTs": "2022-11-20T20:12:49.920+01:00" . # Indicates timestamp when the health score was last updated
@@ -349,10 +354,18 @@ class DomPwrStatsValues(NamedTuple):
         ])
 
 
-class DomPwrStats(NamedTuple):
+@dataclass
+class DomPwrStats:
     dn: str
     rx: DomPwrStatsValues
     tx: DomPwrStatsValues
+    op_state: str = ''
+    admin_state: str = ''
+
+    def add_port_state(self, iface_stats: Dict[str, Dict[str, InterfaceStatus]], node_name: str):
+        states = iface_stats.get(node_name, {}).get(self.dn, InterfaceStatus(op_state='', admin_state=''))
+        self.op_state = states.op_state
+        self.admin_state = states.admin_state
 
     @staticmethod
     def get_pwr_stats(rx_data: Dict, tx_stats: Dict) -> 'DomPwrStats':
@@ -373,6 +386,8 @@ class DomPwrStats(NamedTuple):
     def get_header():
         return '#' + (DEFAULT_SEPARATOR.join([
             'iface_dn',
+            'op_state',
+            'admin_state',
             'rx_alert',
             'rx_status',
             'rx_hi_alarm',
@@ -390,7 +405,10 @@ class DomPwrStats(NamedTuple):
         ]))
 
     def __repr__(self):
-        return (f'{self.dn}{DEFAULT_SEPARATOR}{self.rx}{DEFAULT_SEPARATOR}{self.tx}')
+        return (f'{self.dn}{DEFAULT_SEPARATOR}'
+                f'{self.op_state}{DEFAULT_SEPARATOR}'
+                f'{self.admin_state}{DEFAULT_SEPARATOR}'
+                f'{self.rx}{DEFAULT_SEPARATOR}{self.tx}')
 
     @property
     def node_str(self):
@@ -565,7 +583,7 @@ def __group_interface_by_host(iface_stats: List[InterfaceDetails], aci_nodes: Di
     return dict(grouped_interfaces)
 
 
-def get_pwr_stats(apic: Apic, aci_nodes: Dict):
+def get_pwr_stats(apic: Apic, aci_nodes: Dict, iface_stats: Dict[str, Dict[str, InterfaceStatus]]):
     # fetch data
     rx_pwr_stats = apic.get_data_from_class('ethpmDOMRxPwrStats')
     tx_pwr_stats = apic.get_data_from_class('ethpmDOMTxPwrStats')
@@ -576,12 +594,14 @@ def get_pwr_stats(apic: Apic, aci_nodes: Dict):
     pwr_stats_by_node = defaultdict(list)
     for rx in rx_pwr_stats:
         stat = DomPwrStats.get_pwr_stats(rx, tx_pwr_stats_mapping)
-        pwr_stats_by_node[aci_nodes[stat.node_str]].append(stat)
+        node_name = aci_nodes[stat.node_str]
+        stat.add_port_state(iface_stats, node_name)
+        pwr_stats_by_node[node_name].append(stat)
 
     return pwr_stats_by_node
 
 
-def __prepare_iface_lookup_table(iface_stats: Dict[str, List[InterfaceDetails]]):
+def __prepare_iface_lookup_table(iface_stats: Dict[str, List[InterfaceDetails]]) -> Dict[str, Dict[str, InterfaceStatus]]:
     """DOM PWR stats do not return oper_state of an interface (only admin_state)
     We want to map the results from l1_phys_if and provide a lookup table to easily
     get the operatial state of an interface.
@@ -589,7 +609,7 @@ def __prepare_iface_lookup_table(iface_stats: Dict[str, List[InterfaceDetails]])
     oper_states: Dict[str, Dict[str, str]] = {}
 
     for aci_node, iface_details in iface_stats.items():
-        oper_states[aci_node] = {iface.phys_dn: iface.op_state for iface in iface_details}
+        oper_states[aci_node] = {iface.phys_dn: InterfaceStatus(op_state=iface.admin_state, admin_state=iface.op_state) for iface in iface_details}
 
     return oper_states
 
@@ -718,7 +738,7 @@ def output_dom_rx_pwr_stats(apic: Apic, iface_stats: Dict[str, List[InterfaceDet
     section_name: str = 'aci_dom_pwr_stats'
     LOGGING.info(f'fetch and write {section_name} section')
 
-    pwr_stats_by_node = get_pwr_stats(apic, aci_nodes)
+    pwr_stats_by_node = get_pwr_stats(apic, aci_nodes, iface_status_lookup_table)
 
     for node, pwr_stats in pwr_stats_by_node.items():
         with ConditionalPiggybackSection(f'{node}.{dns_domain}' if dns_domain else node):
