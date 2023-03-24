@@ -26,8 +26,8 @@ from cmk.base.plugins.agent_based.aci_dom_pwr_stats import (
 )
 
 
-SECTION_1: List = [
-    DomPowerStat(
+SECTION_1: List = {
+    'eth1/3': DomPowerStat(
         dn='topology/pod-1/node-101/sys/phys-[eth1/3]/phys',
         op_state='up',
         admin_state='up',
@@ -38,10 +38,10 @@ SECTION_1: List = [
             PowerStatType.TX, 'none', 'none', 5.000031, 4.000023, -8.498579, -7.500682, 1.162756,
         )
     ),
-]
+}
 
-SECTION_2: List = [
-    DomPowerStat(
+SECTION_2: List = {
+    'eth1/1': DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth1/1]/phys',
         op_state='up',
         admin_state='up',
@@ -52,7 +52,7 @@ SECTION_2: List = [
             PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, -2.731099
         )
     ),
-    DomPowerStat(
+    'eth1/11': DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth1/11]/phys',
         op_state='up',
         admin_state='up',
@@ -63,7 +63,7 @@ SECTION_2: List = [
             PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, 0.668027,
         )
     ),
-    DomPowerStat(
+    'eth11/21/102': DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys',
         op_state='up',
         admin_state='up',
@@ -74,7 +74,7 @@ SECTION_2: List = [
             PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, -11.031196,
         )
     ),
-]
+}
 
 
 @pytest.mark.parametrize(
@@ -82,7 +82,7 @@ SECTION_2: List = [
     [
         (
             [],
-            []
+            {}
         ),
         (
             [
@@ -111,7 +111,7 @@ def test_parse_aci_dom_pwr_stats(string_table: List[List[str]], expected_section
     [
         (
             '',
-            [],
+            {},
             (
                 Result(state=State.UNKNOWN, summary='Sorry - item not found'),
             ),

@@ -26,8 +26,8 @@ from cmk.base.plugins.agent_based.aci_dom_pwr_stats import (
 )
 
 
-SECTION_1: List = [
-    DomPowerStat(
+SECTION_1: Dict = {
+    'eth1/3': DomPowerStat(
         dn='topology/pod-1/node-101/sys/phys-[eth1/3]/phys',
         op_state='up',
         admin_state='up',
@@ -38,10 +38,10 @@ SECTION_1: List = [
             PowerStatType.TX, 'none', 'none', 5.000031, 4.000023, -8.498579, -7.500682, 1.162756,
         )
     ),
-]
+}
 
-SECTION_2: List = [
-    DomPowerStat(
+SECTION_2: Dict = {
+    'eth1/1': DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth1/1]/phys',
         op_state='up',
         admin_state='up',
@@ -52,9 +52,20 @@ SECTION_2: List = [
             PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, -2.731099
         )
     ),
-    DomPowerStat(
-        dn='topology/pod-1/node-112/sys/phys-[eth1/11]/phys',
+    'eth1/2': DomPowerStat(
+        dn='topology/pod-1/node-112/sys/phys-[eth1/2]/phys',
         op_state='up',
+        admin_state='up',
+        rx=DomPowerStatValues(
+            PowerStatType.RX, 'none', 'none', 0.999912, 0.000000, -13.098040, -12.097149, -2.599533,
+        ),
+        tx=DomPowerStatValues(
+            PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, -2.731099
+        )
+    ),
+    'eth1/11': DomPowerStat(
+        dn='topology/pod-1/node-112/sys/phys-[eth1/11]/phys',
+        op_state='down',
         admin_state='up',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'warn', 'bla', 0.999912, 0.000000, -13.098040, -12.097149, 0.910695,
@@ -63,10 +74,10 @@ SECTION_2: List = [
             PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, 0.668027,
         )
     ),
-    DomPowerStat(
+    'eth11/21/102': DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys',
-        op_state='up',
-        admin_state='up',
+        op_state='down',
+        admin_state='down',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'none', 'none', 5.000031, 4.000023, -13.695722, -11.700533, -15.648960,
         ),
@@ -74,7 +85,7 @@ SECTION_2: List = [
             PowerStatType.TX, 'none', 'none', 0.999912, 0.000000, -9.299622, -8.300319, -11.031196,
         )
     ),
-]
+}
 
 
 @pytest.mark.parametrize(
@@ -92,6 +103,7 @@ SECTION_2: List = [
             SECTION_2,
             (
                 Service(item='Ethernet1/1'),
+                Service(item='Ethernet1/2'),
                 Service(item='Ethernet1/11'),
                 Service(item='Ethernet11/21/102'),
             ),
@@ -111,25 +123,44 @@ SECTION_2: List = [
                     'pad_portnumbers': False,
                     'labels': {'os': 'aci_büchse'},
                 }),
-                'matching_conditions': (False, {'port_admin_states': ['2']})  # no effect for this check
+                'matching_conditions': (False, {'port_admin_states': ['2']})
             },
             SECTION_2,
             (
-                Service(item='eth1/1', labels=[ServiceLabel('os', 'aci_büchse')]),
-                Service(item='eth1/11', labels=[ServiceLabel('os', 'aci_büchse')]),
                 Service(item='eth11/21/102', labels=[ServiceLabel('os', 'aci_büchse')]),
             ),
         ),
         (
             {
-                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': True}),
-                'matching_conditions': (False, {'port_admin_states': ['1']})  # no effect for this check
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': False}),
+                'matching_conditions': (False, {'port_oper_states': ['1']})
             },
             SECTION_2,
             (
-                Service(item='eth1/001'),
-                Service(item='eth1/011'),
+                Service(item='eth1/11'),
                 Service(item='eth11/21/102'),
+            ),
+        ),
+        (
+            {
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': False}),
+                'matching_conditions': (False, {'port_oper_states': ['2']})
+            },
+            SECTION_2,
+            (
+                Service(item='eth1/1'),
+                Service(item='eth1/2'),
+            ),
+        ),
+        (
+            {
+                'discovery_single': (True, {'long_if_name': False, 'pad_portnumbers': False}),
+                'matching_conditions': (False, {'port_admin_states': ['1'], 'port_oper_states': ['2']})
+            },
+            SECTION_2,
+            (
+                Service(item='eth1/1'),
+                Service(item='eth1/2'),
             ),
         ),
     ],

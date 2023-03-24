@@ -41,6 +41,9 @@ from .aci_general import (
     get_discovery_item_name,
     get_orig_interface_id,
     DEFAULT_DISCOVERY_PARAMS,
+    check_interface_discovery,
+    ADMIN_PORT_STATE,
+    OPERATIONAL_PORT_STATE,
 )
 
 
@@ -129,8 +132,18 @@ class DomPowerStat(NamedTuple):
     def id_length(self) -> int:
         return len(self.interface.split('/')[-1].lower().replace('eth', ''))
 
+    @property
+    def port_admin_state(self) -> int:
+        """return port admin state as int"""
+        return ADMIN_PORT_STATE.get(self.admin_state)
 
-def parse_aci_dom_pwr_stats(string_table) -> List[DomPowerStat]:
+    @property
+    def port_oper_state(self) -> int:
+        """return port oper state as int"""
+        return OPERATIONAL_PORT_STATE.get(self.op_state)
+
+
+def parse_aci_dom_pwr_stats(string_table) -> Dict[str, DomPowerStat]:
     """
     Exmple output:
         #iface_dn rx_alert rx_status rx_hi_alarm rx_hi_warn rx_lo_alarm rx_lo_warn rx_value tx_alert tx_status tx_hi_alarm tx_hi_warn tx_lo_alarm tx_lo_warn tx_value
@@ -138,10 +151,11 @@ def parse_aci_dom_pwr_stats(string_table) -> List[DomPowerStat]:
         topology/pod-1/node-112/sys/phys-[eth1/11]/phys none none 0.999912 0.000000 -13.098040 -12.097149 -3.033815 none none 0.999912 0.000000 -9.299622 -8.300319 -2.668027
         topology/pod-1/node-112/sys/phys-[eth1/12]/phys none none 0.999912 0.000000 -13.098040 -12.097149 -2.896287 none none 0.999912 0.000000 -9.299622 -8.300319 -3.031196
     """
-    return [
+    parsing_result = [
         DomPowerStat.from_string_table(line) for line in string_table
         if not line[0].startswith('#')
     ]
+    return {res.interface: res for res in parsing_result}
 
 
 register.agent_section(
@@ -155,15 +169,17 @@ def _get_discovery_item_name(params: Dict, interface_id: str, pad_length: int) -
     return get_discovery_item_name(params, interface_id, pad_length)
 
 
-def discover_aci_dom_pwr_stats(params, section: List[DomPowerStat]) -> DiscoveryResult:
-    for pwr_stat in section:
-        interface_id, labels = _get_discovery_item_name(params, pwr_stat.interface, pad_length=get_max_if_padding(section))
+def discover_aci_dom_pwr_stats(params, section: Dict[str, DomPowerStat]) -> DiscoveryResult:
+    for interface_id, pwr_stat in section.items():
+        interface_id, labels = check_interface_discovery(
+            params, interface_id, pwr_stat, pad_length=get_max_if_padding(section),
+        )
         if interface_id:
             yield Service(item=interface_id, labels=labels)
 
 
-def check_aci_dom_pwr_stats(item: str, section: List[DomPowerStat]) -> CheckResult:
-    for stat in section:
+def check_aci_dom_pwr_stats(item: str, section: Dict[str, DomPowerStat]) -> CheckResult:
+    for stat in section.values():
         if get_orig_interface_id(item) == stat.interface:
             for s in (stat.rx, stat.tx):
 
