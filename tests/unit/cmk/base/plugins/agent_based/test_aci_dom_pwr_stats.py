@@ -29,6 +29,8 @@ from cmk.base.plugins.agent_based.aci_dom_pwr_stats import (
 SECTION_1: List = [
     DomPowerStat(
         dn='topology/pod-1/node-101/sys/phys-[eth1/3]/phys',
+        op_state='up',
+        admin_state='up',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'none', 'none', 5.000031, 4.000023, -13.695722, -11.700533, -1.726307,
         ),
@@ -41,6 +43,8 @@ SECTION_1: List = [
 SECTION_2: List = [
     DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth1/1]/phys',
+        op_state='up',
+        admin_state='up',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'none', 'none', 0.999912, 0.000000, -13.098040, -12.097149, -2.599533,
         ),
@@ -50,6 +54,8 @@ SECTION_2: List = [
     ),
     DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth1/11]/phys',
+        op_state='up',
+        admin_state='up',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'warn', 'bla', 0.999912, 0.000000, -13.098040, -12.097149, 0.910695,
         ),
@@ -59,6 +65,8 @@ SECTION_2: List = [
     ),
     DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys',
+        op_state='up',
+        admin_state='up',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'none', 'none', 5.000031, 4.000023, -13.695722, -11.700533, -15.648960,
         ),
@@ -79,16 +87,16 @@ SECTION_2: List = [
         (
             [
                 ['#iface_dn', 'rx_alert', 'rx_status', 'rx_hi_alarm', 'rx_hi_warn', 'rx_lo_alarm', 'rx_lo_warn', 'rx_value', 'tx_alert', 'tx_status', 'tx_hi_alarm', 'tx_hi_warn', 'tx_lo_alarm', 'tx_lo_warn', 'tx_value'],
-                ['topology/pod-1/node-101/sys/phys-[eth1/3]/phys', 'none', 'none', '5.000031', '4.000023', '-13.695722', '-11.700533', '-1.726307', 'none', 'none', '5.000031', '4.000023', '-8.498579', '-7.500682', '1.162756'],
+                ['topology/pod-1/node-101/sys/phys-[eth1/3]/phys', 'up', 'up', 'none', 'none', '5.000031', '4.000023', '-13.695722', '-11.700533', '-1.726307', 'none', 'none', '5.000031', '4.000023', '-8.498579', '-7.500682', '1.162756'],
             ],
             SECTION_1,
         ),
         (
             [
                 # shall also work without a header row
-                ['topology/pod-1/node-112/sys/phys-[eth1/1]/phys', 'none', 'none', '0.999912', '0.000000', '-13.098040', '-12.097149', '-2.599533', 'none', 'none', '0.999912', '0.000000', '-9.299622', '-8.300319', '-2.731099'],
-                ['topology/pod-1/node-112/sys/phys-[eth1/11]/phys', 'warn', 'bla', '0.999912', '0.000000', '-13.098040', '-12.097149', '0.910695', 'none', 'none', '0.999912', '0.000000', '-9.299622', '-8.300319', '0.668027'],
-                ['topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys', 'none', 'none', '5.000031', '4.000023', '-13.695722', '-11.700533', '-15.648960', 'none', 'none', '0.999912', '0.000000', '-9.299622', '-8.300319', '-11.031196'],
+                ['topology/pod-1/node-112/sys/phys-[eth1/1]/phys', 'up', 'up', 'none', 'none', '0.999912', '0.000000', '-13.098040', '-12.097149', '-2.599533', 'none', 'none', '0.999912', '0.000000', '-9.299622', '-8.300319', '-2.731099'],
+                ['topology/pod-1/node-112/sys/phys-[eth1/11]/phys', 'up', 'up', 'warn', 'bla', '0.999912', '0.000000', '-13.098040', '-12.097149', '0.910695', 'none', 'none', '0.999912', '0.000000', '-9.299622', '-8.300319', '0.668027'],
+                ['topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys', 'up', 'up', 'none', 'none', '5.000031', '4.000023', '-13.695722', '-11.700533', '-15.648960', 'none', 'none', '0.999912', '0.000000', '-9.299622', '-8.300319', '-11.031196'],
             ],
             SECTION_2,
         ),

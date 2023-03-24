@@ -29,6 +29,8 @@ from cmk.base.plugins.agent_based.aci_dom_pwr_stats import (
 SECTION_1: List = [
     DomPowerStat(
         dn='topology/pod-1/node-101/sys/phys-[eth1/3]/phys',
+        op_state='up',
+        admin_state='up',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'none', 'none', 5.000031, 4.000023, -13.695722, -11.700533, -1.726307,
         ),
@@ -41,6 +43,8 @@ SECTION_1: List = [
 SECTION_2: List = [
     DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth1/1]/phys',
+        op_state='up',
+        admin_state='up',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'none', 'none', 0.999912, 0.000000, -13.098040, -12.097149, -2.599533,
         ),
@@ -50,6 +54,8 @@ SECTION_2: List = [
     ),
     DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth1/11]/phys',
+        op_state='up',
+        admin_state='up',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'warn', 'bla', 0.999912, 0.000000, -13.098040, -12.097149, 0.910695,
         ),
@@ -59,6 +65,8 @@ SECTION_2: List = [
     ),
     DomPowerStat(
         dn='topology/pod-1/node-112/sys/phys-[eth11/21/102]/phys',
+        op_state='up',
+        admin_state='up',
         rx=DomPowerStatValues(
             PowerStatType.RX, 'none', 'none', 5.000031, 4.000023, -13.695722, -11.700533, -15.648960,
         ),

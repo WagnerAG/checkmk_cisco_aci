@@ -103,6 +103,8 @@ class DomPowerStatValues(NamedTuple):
 
 class DomPowerStat(NamedTuple):
     dn: str
+    op_state: str
+    admin_state: str
     rx: DomPowerStatValues
     tx: DomPowerStatValues
 
@@ -117,8 +119,10 @@ class DomPowerStat(NamedTuple):
     def from_string_table(line: Sequence) -> DomPowerStat:
         return DomPowerStat(
             dn=line[0],
-            rx=DomPowerStatValues.from_string_table(PowerStatType.RX, line[1:8]),
-            tx=DomPowerStatValues.from_string_table(PowerStatType.TX, line[8:]),
+            op_state=line[1],
+            admin_state=line[2],
+            rx=DomPowerStatValues.from_string_table(PowerStatType.RX, line[3:10]),
+            tx=DomPowerStatValues.from_string_table(PowerStatType.TX, line[10:]),
         )
 
     @property
