@@ -13,6 +13,3 @@ description:
 discovery:
  All BGP peer entries the agent reports will be inventorized.
 
-changelog:
- - initial version
-

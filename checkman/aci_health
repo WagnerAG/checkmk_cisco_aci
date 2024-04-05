@@ -13,6 +13,3 @@ description:
 discovery:
  A single service for the Fabric Health Score will be inventorized.
 
-changelog:
- - initial version
-

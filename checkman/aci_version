@@ -12,6 +12,3 @@ description:
 discovery:
  A single service will be inventorized.
 
-changelog:
- - initial version
-

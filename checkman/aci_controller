@@ -12,6 +12,3 @@ description:
 discovery:
  All controllers the agent reports will be inventorized.
 
-changelog:
- - initial version
-
