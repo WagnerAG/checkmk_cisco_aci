@@ -15,5 +15,3 @@ item:
 discovery:
   One service with the tenant name will be created.
 
-changelog:
- - initial version
