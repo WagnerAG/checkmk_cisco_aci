@@ -154,7 +154,7 @@ def _get_discovery_item_name(params: Dict, interface_id: str, pad_length: int) -
 def discover_aci_dom_pwr_stats(params, section: List[DomPowerStat]) -> DiscoveryResult:
     for pwr_stat in section:
         interface_id, labels = _get_discovery_item_name(params, pwr_stat.interface, pad_length=get_max_if_padding(section))
-        if interface_id:
+        if interface_id and not pwr_stat.rx.value == -40.0:
             yield Service(item=interface_id, labels=labels)
 
 
