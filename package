@@ -1,7 +1,12 @@
 {
+    'name': 'cisco_aci',
+    'title': u'Special agent for Cisco ACI',
+    'version': '0.7.18',
+    'version.min_required': '2.0.0p1',
+    'version.packaged': '2.0.0p27',
     'author': u'Roger Ellenberger',
     'description': u'Cisco ACI monitoring agent for cmk2.0. Original version by Samuel Zehnder <zehnder@netcloud.ch>',
-    'download_url': '',
+    'download_url': 'https://github.com/WagnerAG/checkmk_cisco_aci',
     'files': {
         'agent_based': [
             'aci_bgp_peer_entry.py',
@@ -42,10 +47,5 @@
             'plugins/wato/cisco_aci_check_parameters.py',
             'plugins/wato/cisco_aci_discovery_parameters.py',
         ]
-    },
-    'name': 'cisco_aci',
-    'title': u'Special agent for Cisco ACI',
-    'version': '0.7.16',
-    'version.min_required': '2.0.0',
-    'version.packaged': '2.0.0p27'
+    }
 }

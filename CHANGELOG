@@ -3,3 +3,4 @@ Changelog:
 v0.4 Initial from Samuel Zehnder
 v0.5 Fixed inventory function for CheckMK 1.6.0
 v0.6 Refactoring for Python3 and cmk2.0 by Roger Ellenberger
+v0.7 Refactoring by Simon Meister
