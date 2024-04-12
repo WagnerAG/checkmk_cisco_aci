@@ -46,8 +46,8 @@ from .aci_general import (
 
 @unique
 class PowerStatType(Enum):
-    RX: str = 'rx'
-    TX: str = 'tx'
+    RX: str = "rx"
+    TX: str = "tx"
 
 
 class DomPowerStatValues(NamedTuple):
@@ -74,11 +74,11 @@ class DomPowerStatValues(NamedTuple):
 
     @property
     def summary(self) -> str:
-        return f'{self.type.name} alert: {self.alert}, {self.type.name} status: {self.status}'
+        return f"{self.type.name} alert: {self.alert}, {self.type.name} status: {self.status}"
 
     @property
     def state(self) -> State:
-        return State.OK if self.alert == 'none' else State.WARN
+        return State.OK if self.alert == "none" else State.WARN
 
     @property
     def upper_levels(self) -> Tuple:
@@ -90,15 +90,18 @@ class DomPowerStatValues(NamedTuple):
 
     @property
     def details(self) -> str:
-        return '\n'.join(f'{self.type.name} {val}' for val in (
-            f'alert: {self.alert}',
-            f'status: {self.status}',
-            f'hi_alarm: {self.hi_alarm}',
-            f'hi_warn: {self.hi_warn}',
-            f'lo_alarm: {self.lo_alarm}',
-            f'lo_warn: {self.lo_warn}',
-            f'value: {self.value} (precise)',
-        ))
+        return "\n".join(
+            f"{self.type.name} {val}"
+            for val in (
+                f"alert: {self.alert}",
+                f"status: {self.status}",
+                f"hi_alarm: {self.hi_alarm}",
+                f"hi_warn: {self.hi_warn}",
+                f"lo_alarm: {self.lo_alarm}",
+                f"lo_warn: {self.lo_warn}",
+                f"value: {self.value} (precise)",
+            )
+        )
 
 
 class DomPowerStat(NamedTuple):
@@ -108,7 +111,7 @@ class DomPowerStat(NamedTuple):
 
     @property
     def interface(self) -> str:
-        IFACE_REGEX: str = r'\[(?P<iface>eth\d+(/\d+){1,2})\]'
+        IFACE_REGEX: str = r"\[(?P<iface>eth\d+(/\d+){1,2})\]"
         iface_regex = re.compile(IFACE_REGEX)
         matches = iface_regex.search(self.dn)
         return f'{matches.group("iface")}'
@@ -123,7 +126,7 @@ class DomPowerStat(NamedTuple):
 
     @property
     def id_length(self) -> int:
-        return len(self.interface.split('/')[-1].lower().replace('eth', ''))
+        return len(self.interface.split("/")[-1].lower().replace("eth", ""))
 
 
 def parse_aci_dom_pwr_stats(string_table) -> List[DomPowerStat]:
@@ -134,14 +137,11 @@ def parse_aci_dom_pwr_stats(string_table) -> List[DomPowerStat]:
         topology/pod-1/node-112/sys/phys-[eth1/11]/phys none none 0.999912 0.000000 -13.098040 -12.097149 -3.033815 none none 0.999912 0.000000 -9.299622 -8.300319 -2.668027
         topology/pod-1/node-112/sys/phys-[eth1/12]/phys none none 0.999912 0.000000 -13.098040 -12.097149 -2.896287 none none 0.999912 0.000000 -9.299622 -8.300319 -3.031196
     """
-    return [
-        DomPowerStat.from_string_table(line) for line in string_table
-        if not line[0].startswith('#')
-    ]
+    return [DomPowerStat.from_string_table(line) for line in string_table if not line[0].startswith("#")]
 
 
 register.agent_section(
-    name='aci_dom_pwr_stats',
+    name="aci_dom_pwr_stats",
     parse_function=parse_aci_dom_pwr_stats,
 )
 
@@ -162,25 +162,20 @@ def check_aci_dom_pwr_stats(item: str, section: List[DomPowerStat]) -> CheckResu
     for stat in section:
         if get_orig_interface_id(item) == stat.interface:
             for s in (stat.rx, stat.tx):
-
                 yield Result(state=s.state, notice=s.summary, details=s.details)
 
                 # Alerting works with dynamic warn/alert levels that are received from ACI
-                yield from check_levels(s.value,
-                                        levels_upper=s.upper_levels,
-                                        levels_lower=s.lower_levels,
-                                        metric_name=f'dom_{s.type.value}_power',
-                                        label=f'{s.type.name} value')
+                yield from check_levels(s.value, levels_upper=s.upper_levels, levels_lower=s.lower_levels, metric_name=f"dom_{s.type.value}_power", label=f"{s.type.name} value")
             break
     else:
-        yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
+        yield Result(state=State.UNKNOWN, summary="Sorry - item not found")
 
 
 register.check_plugin(
-    name='aci_dom_pwr_stats',
-    service_name='Interface %s DOM Power',
+    name="aci_dom_pwr_stats",
+    service_name="Interface %s DOM Power",
     discovery_function=discover_aci_dom_pwr_stats,
     check_function=check_aci_dom_pwr_stats,
-    discovery_ruleset_name='cisco_aci_if_discovery',
+    discovery_ruleset_name="cisco_aci_if_discovery",
     discovery_default_parameters=DEFAULT_DISCOVERY_PARAMS,
 )

@@ -51,22 +51,22 @@ from .aci_general import (
 ROUND_TO_DIGITS: int = 2
 
 DEFAULT_ERROR_LEVELS: Dict = {
-    'level_fcs_errors': (0.01, 1.0),
-    'level_crc_errors': (1.0, 12.0),
-    'level_stomped_crc_errors': (1.0, 12.0),
+    "level_fcs_errors": (0.01, 1.0),
+    "level_crc_errors": (1.0, 12.0),
+    "level_stomped_crc_errors": (1.0, 12.0),
 }
 
 OPERATIONAL_PORT_STATE = {
-    "unknown": '0',
-    "down": '1',
-    "up": '2',
-    "link-up": '3',
-    "channel-admin-down": '4',
+    "unknown": "0",
+    "down": "1",
+    "up": "2",
+    "link-up": "3",
+    "channel-admin-down": "4",
 }
 
 ADMIN_PORT_STATE = {
-    "up": '1',
-    "down": '2',
+    "up": "1",
+    "down": "2",
 }
 
 
@@ -77,22 +77,20 @@ class ErrorRates(NamedTuple):
 
     @staticmethod
     def _get_levels(params: Dict, state: State) -> Tuple:
-        fcs_warn, fcs_crit = params.get('level_fcs_errors')
-        crc_warn, crc_crit = params.get('level_crc_errors')
-        stomped_crc_warn, stomped_crc_crit = params.get('level_stomped_crc_errors')
+        fcs_warn, fcs_crit = params.get("level_fcs_errors")
+        crc_warn, crc_crit = params.get("level_crc_errors")
+        stomped_crc_warn, stomped_crc_crit = params.get("level_stomped_crc_errors")
 
         if state == State.CRIT:
             return fcs_crit, crc_crit, stomped_crc_crit
         elif state == State.WARN:
             return fcs_warn, crc_warn, stomped_crc_warn
         else:
-            raise ValueError(f'No valid state provided. Allowed are State.CRIT and State.WARN. Got state={state}')
+            raise ValueError(f"No valid state provided. Allowed are State.CRIT and State.WARN. Got state={state}")
 
     def _check_state(self, params, state: State) -> bool:
         fcs_level, crc_level, stomped_crc_level = self._get_levels(params, state)
-        return self.fcs >= fcs_level or \
-            self.crc >= crc_level or \
-            self.stomped_crc >= stomped_crc_level
+        return self.fcs >= fcs_level or self.crc >= crc_level or self.stomped_crc >= stomped_crc_level
 
     def is_crit(self, params) -> bool:
         return self._check_state(params, state=State.CRIT)
@@ -122,15 +120,9 @@ class AciL1Interface:
             value_store = get_value_store()
             now = time.time()
 
-            crc_rate = convert_rate(get_rate(value_store,
-                                             f'cisco_aci.{self.dn}.crc',
-                                             now,
-                                             self.crc_errors))
+            crc_rate = convert_rate(get_rate(value_store, f"cisco_aci.{self.dn}.crc", now, self.crc_errors))
 
-            fcs_rate = convert_rate(get_rate(value_store,
-                                             f'cisco_aci.{self.dn}.fcs',
-                                             now,
-                                             self.fcs_errors))
+            fcs_rate = convert_rate(get_rate(value_store, f"cisco_aci.{self.dn}.fcs", now, self.fcs_errors))
 
             stomped_crc_rate = crc_rate - fcs_rate
 
@@ -156,7 +148,7 @@ class AciL1Interface:
         if self.rates.is_warn(params):
             return State.WARN
 
-        if self.admin_state == 'up' and self.op_state == 'down':
+        if self.admin_state == "up" and self.op_state == "down":
             return State.WARN
 
         return State.OK
@@ -167,34 +159,19 @@ class AciL1Interface:
 
     @property
     def layer_short(self) -> str:
-        return self.layer.lower().replace('layer', '')
+        return self.layer.lower().replace("layer", "")
 
     @property
     def summary(self):
         self.calculate_error_counters()
 
-        return (
-            f'state: {self.admin_state}/{self.op_state} (admin/op) '
-            f'layer: {self.layer_short} '
-            f'op_speed: {self.op_speed} | '
-            f'errors: FCS={round(self.rates.fcs, ROUND_TO_DIGITS)}/min ({self.fcs_errors} total) '
-            f'CRC={round(self.rates.crc, ROUND_TO_DIGITS)}/min ({self.crc_errors} total) '
-            f'stomped_CRC={round(self.rates.stomped_crc, ROUND_TO_DIGITS)}/min ({self.stomped_crc} total)'
-        )
+        return f"state: {self.admin_state}/{self.op_state} (admin/op) " f"layer: {self.layer_short} " f"op_speed: {self.op_speed} | " f"errors: FCS={round(self.rates.fcs, ROUND_TO_DIGITS)}/min ({self.fcs_errors} total) " f"CRC={round(self.rates.crc, ROUND_TO_DIGITS)}/min ({self.crc_errors} total) " f"stomped_CRC={round(self.rates.stomped_crc, ROUND_TO_DIGITS)}/min ({self.stomped_crc} total)"
 
     @property
     def details(self):
         self.calculate_error_counters()
 
-        return (
-            f'Admin state: {self.admin_state} \n'
-            f'Operational state: {self.op_state} \n'
-            f'Layer: {self.layer} \n'
-            f'Operational speed: {self.op_speed} \n\n'
-            f'FCS errors: {round(self.rates.fcs, ROUND_TO_DIGITS)}/min ({self.fcs_errors} errors in total) \n'
-            f'CRC errors: {round(self.rates.crc, ROUND_TO_DIGITS)}/min ({self.crc_errors} errors in total) \n'
-            f'Stomped CRC errors: {round(self.rates.stomped_crc, ROUND_TO_DIGITS)}/min ({self.stomped_crc} errors in total)'
-        )
+        return f"Admin state: {self.admin_state} \n" f"Operational state: {self.op_state} \n" f"Layer: {self.layer} \n" f"Operational speed: {self.op_speed} \n\n" f"FCS errors: {round(self.rates.fcs, ROUND_TO_DIGITS)}/min ({self.fcs_errors} errors in total) \n" f"CRC errors: {round(self.rates.crc, ROUND_TO_DIGITS)}/min ({self.crc_errors} errors in total) \n" f"Stomped CRC errors: {round(self.rates.stomped_crc, ROUND_TO_DIGITS)}/min ({self.stomped_crc} errors in total)"
 
     @property
     def port_admin_state(self) -> int:
@@ -208,40 +185,39 @@ class AciL1Interface:
 
     @property
     def id_length(self):
-        return len(self.id.split('/')[-1].lower().replace('eth', ''))
+        return len(self.id.split("/")[-1].lower().replace("eth", ""))
 
 
 def parse_aci_l1_phys_if(string_table) -> Dict[str, AciL1Interface]:
-    return {line[1]: AciL1Interface.from_string_table(line) for line in string_table
-            if not line[0].startswith('#')}
+    return {line[1]: AciL1Interface.from_string_table(line) for line in string_table if not line[0].startswith("#")}
 
 
 register.agent_section(
-    name='aci_l1_phys_if',
+    name="aci_l1_phys_if",
     parse_function=parse_aci_l1_phys_if,
 )
 
 
 def _check_port_state(port_matching_condition: Dict, interface: AciL1Interface) -> bool:
-    admin_states = port_matching_condition.get('port_admin_states', [*ADMIN_PORT_STATE.values()])
-    oper_states = port_matching_condition.get('port_oper_states', [*OPERATIONAL_PORT_STATE.values()])
+    admin_states = port_matching_condition.get("port_admin_states", [*ADMIN_PORT_STATE.values()])
+    oper_states = port_matching_condition.get("port_oper_states", [*OPERATIONAL_PORT_STATE.values()])
 
     return (interface.port_admin_state in admin_states) and (interface.port_oper_state in oper_states)
 
 
 def _check_interface_discovery(
-        params: Dict,
-        interface_id: str,
-        interface: AciL1Interface,
-        pad_length: int,
+    params: Dict,
+    interface_id: str,
+    interface: AciL1Interface,
+    pad_length: int,
 ) -> Tuple[Optional[str], List[ServiceLabel]]:
     """for example values for param, see tests"""
     interface_id, labels = get_discovery_item_name(params, interface_id, pad_length)
 
     # check if we detect ports only on certain condition
     # value is False if we shall apply a filtering
-    if not params['matching_conditions'][0]:
-        port_matching_condition = params['matching_conditions'][1]
+    if not params["matching_conditions"][0]:
+        port_matching_condition = params["matching_conditions"][1]
         if not _check_port_state(port_matching_condition, interface):
             # and return None if it does not match
             return None, []
@@ -252,7 +228,10 @@ def _check_interface_discovery(
 def discover_aci_l1_phys_if(params, section: Dict[str, AciL1Interface]) -> DiscoveryResult:
     for interface_id in section.keys():
         interface_id, labels = _check_interface_discovery(
-            params, interface_id, section.get(interface_id), pad_length=get_max_if_padding(section),
+            params,
+            interface_id,
+            section.get(interface_id),
+            pad_length=get_max_if_padding(section),
         )
         if interface_id:
             yield Service(item=interface_id, labels=labels)
@@ -262,21 +241,21 @@ def check_aci_l1_phys_if(item: str, params: Dict, section: Dict[str, AciL1Interf
     interface: AciL1Interface = section.get(get_orig_interface_id(item))
 
     if not interface:
-        yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
+        yield Result(state=State.UNKNOWN, summary="Sorry - item not found")
     else:
         yield Result(state=interface.get_state(params), summary=interface.summary, details=interface.details)
-        yield Metric('fcs_errors', round(interface.rates.fcs, ROUND_TO_DIGITS), levels=params.get('level_fcs_errors'))
-        yield Metric('crc_errors', round(interface.rates.crc, ROUND_TO_DIGITS), levels=params.get('level_crc_errors'))
-        yield Metric('stomped_crc_errors', round(interface.rates.stomped_crc, ROUND_TO_DIGITS), levels=params.get('level_stomped_crc_errors'))
+        yield Metric("fcs_errors", round(interface.rates.fcs, ROUND_TO_DIGITS), levels=params.get("level_fcs_errors"))
+        yield Metric("crc_errors", round(interface.rates.crc, ROUND_TO_DIGITS), levels=params.get("level_crc_errors"))
+        yield Metric("stomped_crc_errors", round(interface.rates.stomped_crc, ROUND_TO_DIGITS), levels=params.get("level_stomped_crc_errors"))
 
 
 register.check_plugin(
-    name='aci_l1_phys_if',
-    service_name='Interface %s L1 phys',
+    name="aci_l1_phys_if",
+    service_name="Interface %s L1 phys",
     discovery_function=discover_aci_l1_phys_if,
     check_function=check_aci_l1_phys_if,
-    discovery_ruleset_name='cisco_aci_if_discovery',
+    discovery_ruleset_name="cisco_aci_if_discovery",
     discovery_default_parameters=DEFAULT_DISCOVERY_PARAMS,
-    check_ruleset_name='aci_l1_phys_if_levels',
+    check_ruleset_name="aci_l1_phys_if_levels",
     check_default_parameters=DEFAULT_ERROR_LEVELS,
 )

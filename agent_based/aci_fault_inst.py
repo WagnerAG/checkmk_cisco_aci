@@ -36,11 +36,11 @@ from .agent_based_api.v1 import (
 
 
 class FaultSeverity(Enum):
-    CRIT: str = 'critical'
-    MAJOR: str = 'major'
-    MINOR: str = 'minor'
-    WARN: str = 'warning'
-    CLEARED: str = 'cleared'
+    CRIT: str = "critical"
+    MAJOR: str = "major"
+    MINOR: str = "minor"
+    WARN: str = "warning"
+    CLEARED: str = "cleared"
 
 
 class ACIFaultInst(NamedTuple):
@@ -54,9 +54,7 @@ class ACIFaultInst(NamedTuple):
     def from_string_table(line) -> ACIFaultInst:
         severity, code, descr, dn, ack = line
 
-        return ACIFaultInst(
-            severity, code, descr, dn, ack
-        )
+        return ACIFaultInst(severity, code, descr, dn, ack)
 
 
 def parse_aci_fault_inst(string_table) -> ACIFaultInst:
@@ -65,14 +63,11 @@ def parse_aci_fault_inst(string_table) -> ACIFaultInst:
     #severity|code|descr|dn|ack
     major|F609802|[FSM:FAILED]: Task for updating Number of Uplinks on DVS/AVE for VMM controller: hostname with name xyz in datacenter DC01 in domain: DC01-GENERIC(TASK:ifc:vmmmgr:CompPolContUpdateCtrlrNoOfUplinksPol)|comp/prov-VMware/ctrlr-[DC01-GENERIC]-dc01/polCont/fault-F609802|no
     """
-    return [
-        ACIFaultInst.from_string_table(line) for line in string_table
-        if not line[0].startswith('#') and not line[0] == 'severity'
-    ]
+    return [ACIFaultInst.from_string_table(line) for line in string_table if not line[0].startswith("#") and not line[0] == "severity"]
 
 
 register.agent_section(
-    name='aci_fault_inst',
+    name="aci_fault_inst",
     parse_function=parse_aci_fault_inst,
 )
 
@@ -104,8 +99,8 @@ def check_aci_fault_inst(section: ACIFaultInst) -> CheckResult:
 
 
 register.check_plugin(
-    name='aci_fault_inst',
-    service_name='Fabric Faults',
+    name="aci_fault_inst",
+    service_name="Fabric Faults",
     discovery_function=discover_aci_fault_inst,
     check_function=check_aci_fault_inst,
 )

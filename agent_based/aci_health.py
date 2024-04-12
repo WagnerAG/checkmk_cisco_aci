@@ -37,7 +37,7 @@ from .agent_based_api.v1 import (
 )
 
 
-DEFAULT_HEALTH_LEVELS: Dict = {'health_levels': (95, 85)}
+DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": (95, 85)}
 
 
 class ACIHealthValues(NamedTuple):
@@ -52,9 +52,7 @@ class ACIHealthValues(NamedTuple):
         line = list(map(int, line[1:]))  # cast all values to int
         health, fcrit, fwarn, fmaj, fmin = line
 
-        return ACIHealthValues(
-            health, fcrit, fwarn, fmaj, fmin
-        )
+        return ACIHealthValues(health, fcrit, fwarn, fmaj, fmin)
 
 
 def parse_aci_health(string_table) -> ACIHealthValues:
@@ -63,13 +61,13 @@ def parse_aci_health(string_table) -> ACIHealthValues:
         health 99 3 28 34 95
     """
     if len(string_table) != 1:
-        raise ValueError(f'section must <<<aci_health>>> be a single line but is {len(string_table)} lines')
+        raise ValueError(f"section must <<<aci_health>>> be a single line but is {len(string_table)} lines")
 
     return ACIHealthValues.from_string_table_line(string_table[0])
 
 
 register.agent_section(
-    name='aci_health',
+    name="aci_health",
     parse_function=parse_aci_health,
 )
 
@@ -81,16 +79,13 @@ def discover_aci_health(section: ACIHealthValues) -> DiscoveryResult:
 def check_aci_health(params: Dict, section: ACIHealthValues) -> CheckResult:
     yield from check_levels(
         section.health,
-        levels_lower=params.get('health_levels'),
+        levels_lower=params.get("health_levels"),
         boundaries=(0, 100),
-        metric_name='health',
-        label='Fabric Health Score',
+        metric_name="health",
+        label="Fabric Health Score",
     )
 
-    yield Result(
-        state=State.OK,
-        summary=f"Fabric-wide Faults (crit/warn/maj/min): "
-                f"{section.fcrit}/{section.fwarn}/{section.fmaj}/{section.fmin}")
+    yield Result(state=State.OK, summary=f"Fabric-wide Faults (crit/warn/maj/min): " f"{section.fcrit}/{section.fwarn}/{section.fmaj}/{section.fmin}")
 
     yield Metric("fcrit", section.fcrit)
     yield Metric("fwarn", section.fwarn)
@@ -99,10 +94,10 @@ def check_aci_health(params: Dict, section: ACIHealthValues) -> CheckResult:
 
 
 register.check_plugin(
-    name='aci_health',
-    service_name='Fabric Health Score',
+    name="aci_health",
+    service_name="Fabric Health Score",
     discovery_function=discover_aci_health,
     check_function=check_aci_health,
-    check_ruleset_name='aci_health_levels',
+    check_ruleset_name="aci_health_levels",
     check_default_parameters=DEFAULT_HEALTH_LEVELS,
 )

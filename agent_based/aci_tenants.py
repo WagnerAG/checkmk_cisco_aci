@@ -35,7 +35,7 @@ from .agent_based_api.v1 import (
 )
 
 
-DEFAULT_HEALTH_LEVELS: Dict = {'health_levels': (95, 85)}
+DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": (95, 85)}
 
 
 class ACITenant(NamedTuple):
@@ -48,9 +48,7 @@ class ACITenant(NamedTuple):
     def from_string_table_line(line) -> ACITenant:
         name, descr, dn, health_score = line
 
-        return ACITenant(
-            name, descr, dn, int(health_score)
-        )
+        return ACITenant(name, descr, dn, int(health_score))
 
 
 def parse_aci_tenants(string_table) -> Dict[str, ACITenant]:
@@ -63,11 +61,11 @@ def parse_aci_tenants(string_table) -> Dict[str, ACITenant]:
         common||uni/tn-common|100
         LAB|Management Tenant|uni/tn-LAB|98
     """
-    return {line[0]: ACITenant.from_string_table_line(line) for line in string_table if not line[0].startswith('#')}
+    return {line[0]: ACITenant.from_string_table_line(line) for line in string_table if not line[0].startswith("#")}
 
 
 register.agent_section(
-    name='aci_tenants',
+    name="aci_tenants",
     parse_function=parse_aci_tenants,
 )
 
@@ -80,26 +78,26 @@ def discover_aci_tenants(section: Dict[str, ACITenant]) -> DiscoveryResult:
 def check_aci_tenants(item: str, params: Dict, section: Dict[str, ACITenant]) -> CheckResult:
     tenant = section.get(item)
     if not tenant:
-        yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
+        yield Result(state=State.UNKNOWN, summary="Sorry - item not found")
         return
 
     yield from check_levels(
         tenant.health_score,
-        levels_lower=params.get('health_levels'),
+        levels_lower=params.get("health_levels"),
         boundaries=(0, 100),
-        metric_name='health',
-        label='Health Score',
+        metric_name="health",
+        label="Health Score",
     )
 
     if tenant.descr:
-        yield Result(state=State.OK, summary=f'Description: {tenant.descr}')
+        yield Result(state=State.OK, summary=f"Description: {tenant.descr}")
 
 
 register.check_plugin(
-    name='aci_tenants',
-    service_name='Tenant %s',
+    name="aci_tenants",
+    service_name="Tenant %s",
     discovery_function=discover_aci_tenants,
     check_function=check_aci_tenants,
-    check_ruleset_name='aci_tenant_health_levels',
+    check_ruleset_name="aci_tenant_health_levels",
     check_default_parameters=DEFAULT_HEALTH_LEVELS,
 )

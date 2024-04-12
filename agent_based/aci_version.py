@@ -53,7 +53,7 @@ def parse_aci_version(string_table) -> List[ACINodeVersion]:
 
 
 register.agent_section(
-    name='aci_version',
+    name="aci_version",
     parse_function=parse_aci_version,
 )
 
@@ -70,16 +70,16 @@ def check_aci_version(section: List[ACINodeVersion]) -> CheckResult:
         versions.add(node.version[-7:])
 
     if not versions:
-        yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
+        yield Result(state=State.UNKNOWN, summary="Sorry - item not found")
     elif len(versions) == 1:
-        yield Result(state=State.OK, summary=f'Everyone seems to be running {min(versions)}')
+        yield Result(state=State.OK, summary=f"Everyone seems to be running {min(versions)}")
     else:
         yield Result(state=State.WARN, summary=f'Multiple Versions detected: {", ".join(sorted(versions))}')
 
 
 register.check_plugin(
-    name='aci_version',
-    service_name='Fabric Versions',
+    name="aci_version",
+    service_name="Fabric Versions",
     discovery_function=discover_aci_version,
     check_function=check_aci_version,
 )

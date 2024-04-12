@@ -35,7 +35,7 @@ from .agent_based_api.v1 import (
 )
 
 
-DEFAULT_HEALTH_LEVELS: Dict = {'health_levels': (95, 85)}
+DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": (95, 85)}
 HEALTHY_NODE_STATUS: str = "in-service"
 
 
@@ -76,18 +76,14 @@ def check_aci_node(item: str, params: Dict, section: List[ACINode]) -> CheckResu
         if node.nnid == item:
             yield from check_levels(
                 node.health,
-                levels_lower=params.get('health_levels'),
+                levels_lower=params.get("health_levels"),
                 boundaries=(0, 100),
-                metric_name='health',
-                label='Node Health Score',
+                metric_name="health",
+                label="Node Health Score",
             )
 
-            yield Result(
-                state=State.OK if node.status == HEALTHY_NODE_STATUS else State.CRIT,
-                summary=f"{node.name} is {node.status}, "
-                        f"Model: {node.model}, Serial: {node.serial}"
-            )
+            yield Result(state=State.OK if node.status == HEALTHY_NODE_STATUS else State.CRIT, summary=f"{node.name} is {node.status}, " f"Model: {node.model}, Serial: {node.serial}")
 
             break
     else:
-        yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
+        yield Result(state=State.UNKNOWN, summary="Sorry - item not found")

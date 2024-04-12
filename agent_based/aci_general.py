@@ -29,11 +29,14 @@ from .agent_based_api.v1 import ServiceLabel
 
 
 DEFAULT_DISCOVERY_PARAMS: Dict = {
-    'discovery_single': (True, {
-        'long_if_name': True,
-        'pad_portnumbers': False,
-    }),
-    'matching_conditions': (False, {})
+    "discovery_single": (
+        True,
+        {
+            "long_if_name": True,
+            "pad_portnumbers": False,
+        },
+    ),
+    "matching_conditions": (False, {}),
 }
 
 
@@ -61,42 +64,42 @@ def get_max_if_padding(section: Dict):
 
 def pad_interface_id(interface_id: str, pad_length: int = 3):
     """pad the last part of the interface id with zero, so it will be a three digit number"""
-    return '/'.join(interface_id.split('/')[:-1]) + '/' + interface_id.split('/')[-1].zfill(pad_length)
+    return "/".join(interface_id.split("/")[:-1]) + "/" + interface_id.split("/")[-1].zfill(pad_length)
 
 
 def format_interface_id(interface_id: str):
     """format the interface name"""
-    return interface_id.lower().replace('eth', 'Ethernet')
+    return interface_id.lower().replace("eth", "Ethernet")
 
 
 def get_orig_interface_id(interface_id: str):
     """pad the last part of the interface id with zero, so it will be a three digit number"""
-    interface_id = interface_id.replace('Ethernet', 'eth')
-    suffix = interface_id.split('/')[-1].lstrip('0')
-    return '/'.join(interface_id.split('/')[:-1]) + '/' + (suffix if suffix else '0')  # handle case of eth0
+    interface_id = interface_id.replace("Ethernet", "eth")
+    suffix = interface_id.split("/")[-1].lstrip("0")
+    return "/".join(interface_id.split("/")[:-1]) + "/" + (suffix if suffix else "0")  # handle case of eth0
 
 
 def get_discovery_item_name(
-        params: Dict,
-        interface_id: str,
-        pad_length: int,
+    params: Dict,
+    interface_id: str,
+    pad_length: int,
 ) -> Tuple[Optional[str], List[ServiceLabel]]:
     """for example values for param, see tests"""
     labels = {}
 
     # check if we want to detect interfaces at all
-    if not params['discovery_single'][0]:
+    if not params["discovery_single"][0]:
         return None, []
 
     # check if we want to pad port numbers with zeros
-    if params['discovery_single'][1]['pad_portnumbers']:
+    if params["discovery_single"][1]["pad_portnumbers"]:
         interface_id = pad_interface_id(interface_id, pad_length)
 
     # check if we want to replace interface name with a long version
-    if params['discovery_single'][1]['long_if_name']:
+    if params["discovery_single"][1]["long_if_name"]:
         interface_id = format_interface_id(interface_id)
 
     # get labels
-    labels = params['discovery_single'][1].get('labels', {})
+    labels = params["discovery_single"][1].get("labels", {})
 
     return interface_id, [ServiceLabel(k, v) for k, v in labels.items()]

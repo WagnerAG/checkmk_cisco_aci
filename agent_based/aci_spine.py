@@ -30,16 +30,16 @@ from .aci_node import (
 
 
 register.agent_section(
-    name='aci_spine',
+    name="aci_spine",
     parse_function=parse_aci_node,
 )
 
 
 register.check_plugin(
-    name='aci_spine',
-    service_name='Spine %s',
+    name="aci_spine",
+    service_name="Spine %s",
     discovery_function=discover_aci_node,
     check_function=check_aci_node,
-    check_ruleset_name='aci_node_levels',
+    check_ruleset_name="aci_node_levels",
     check_default_parameters=DEFAULT_HEALTH_LEVELS,
 )

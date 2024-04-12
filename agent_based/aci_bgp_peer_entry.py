@@ -42,12 +42,12 @@ from .aci_general import convert_rate, to_int
 
 # by default we only alert on BGP connection drop
 DEFAULT_BGP_RATE_LEVELS: Dict = {
-    'level_bgp_drop': (1.0, 6.0),
+    "level_bgp_drop": (1.0, 6.0),
 }
 
 
 def con_rate(value: float) -> str:
-    return f'{value:0.2f}/min'
+    return f"{value:0.2f}/min"
 
 
 class ConnectionRates(NamedTuple):
@@ -61,9 +61,9 @@ class ConnectionRates(NamedTuple):
         now = time.time()
 
         return ConnectionRates(
-            attempts = convert_rate(get_rate(value_store, f'cisco_aci.{addr}.bgp.conn_attempts', now, attempts)),
-            drop = convert_rate(get_rate(value_store, f'cisco_aci.{addr}.bgp.conn_drop', now, drop)),
-            est = convert_rate(get_rate(value_store, f'cisco_aci.{addr}.bgp.conn_est', now, est)),
+            attempts=convert_rate(get_rate(value_store, f"cisco_aci.{addr}.bgp.conn_attempts", now, attempts)),
+            drop=convert_rate(get_rate(value_store, f"cisco_aci.{addr}.bgp.conn_drop", now, drop)),
+            est=convert_rate(get_rate(value_store, f"cisco_aci.{addr}.bgp.conn_est", now, est)),
         )
 
 
@@ -86,7 +86,6 @@ class BgpPeerEntry:
         values are stored using bgp address
         """
         if not self.rates:
-
             self.rates = ConnectionRates.get_connection_rates(
                 addr=self.addr,
                 attempts=to_int(self.conn_attempts),
@@ -100,29 +99,18 @@ class BgpPeerEntry:
 
     @property
     def summary(self) -> str:
-        return (
-            f'type: {self.type}, '
-            f'remote: {self.addr}:{self.remote_port}, '
-            f'local: {self.local_ip}:{self.local_port}'
-        )
+        return f"type: {self.type}, " f"remote: {self.addr}:{self.remote_port}, " f"local: {self.local_ip}:{self.local_port}"
 
     @property
     def details(self) -> str:
         self.calculate_counters()
-        return (
-            f'type: {self.type}\n'
-            f'remote: {self.addr}:{self.remote_port}\n'
-            f'local: {self.local_ip}:{self.local_port}\n'
-            f'connAttempts: {self.rates.attempts}/min (Total: {self.conn_attempts})\n'
-            f'connDrop: {self.rates.drop}/min (Total: {self.conn_drop})\n'
-            f'connEst: {self.rates.est}/min (Total: {self.conn_est})'
-        )
+        return f"type: {self.type}\n" f"remote: {self.addr}:{self.remote_port}\n" f"local: {self.local_ip}:{self.local_port}\n" f"connAttempts: {self.rates.attempts}/min (Total: {self.conn_attempts})\n" f"connDrop: {self.rates.drop}/min (Total: {self.conn_drop})\n" f"connEst: {self.rates.est}/min (Total: {self.conn_est})"
 
     @property
     def cmk_state(self) -> State:
-        if self.oper_st == 'established':
+        if self.oper_st == "established":
             return State.OK
-        if self.oper_st == 'idle':
+        if self.oper_st == "idle":
             return State.WARN
         return State.CRIT
 
@@ -152,14 +140,11 @@ def parse_aci_bgp_peer_entry(string_table) -> List[BgpPeerEntry]:
         10.79.7.34 11428 0 0 0.0.0.0 unspecified idle unspecified ebgp
         10.79.7.38 11428 0 0 0.0.0.0 unspecified idle unspecified ebgp
     """
-    return [
-        BgpPeerEntry.from_string_table(line) for line in string_table
-        if not line[0].startswith('#')
-    ]
+    return [BgpPeerEntry.from_string_table(line) for line in string_table if not line[0].startswith("#")]
 
 
 register.agent_section(
-    name='aci_bgp_peer_entry',
+    name="aci_bgp_peer_entry",
     parse_function=parse_aci_bgp_peer_entry,
 )
 
@@ -173,31 +158,25 @@ def _check_rates(params: Dict, bgp_peer_entry: BgpPeerEntry) -> CheckResult:
     """execute check_levels for all types of ConnectionRates."""
     bgp_peer_entry.calculate_counters()
     for rate_type in ConnectionRates._fields:
-        yield from check_levels(getattr(bgp_peer_entry.rates, rate_type),
-                                levels_upper=params.get(f'level_bgp_{rate_type}'),
-                                metric_name=f'bgp_conn_{rate_type}',
-                                boundaries=(0.0, None),
-                                label=f'BGP connection {rate_type} value',
-                                render_func=con_rate,
-                                notice_only=True)
+        yield from check_levels(getattr(bgp_peer_entry.rates, rate_type), levels_upper=params.get(f"level_bgp_{rate_type}"), metric_name=f"bgp_conn_{rate_type}", boundaries=(0.0, None), label=f"BGP connection {rate_type} value", render_func=con_rate, notice_only=True)
 
 
 def check_aci_bgp_peer_entry(item: str, params: Dict, section: List[BgpPeerEntry]) -> CheckResult:
     for entry in section:
         if item == entry.addr:
-            yield Result(state=entry.cmk_state, summary=f'state: {entry.oper_st}')
+            yield Result(state=entry.cmk_state, summary=f"state: {entry.oper_st}")
             yield Result(state=State.OK, summary=entry.summary, details=entry.details)
             yield from _check_rates(params, entry)
             break
     else:
-        yield Result(state=State.UNKNOWN, summary='Sorry - item not found')
+        yield Result(state=State.UNKNOWN, summary="Sorry - item not found")
 
 
 register.check_plugin(
-    name='aci_bgp_peer_entry',
-    service_name='BGP peer entry %s',
+    name="aci_bgp_peer_entry",
+    service_name="BGP peer entry %s",
     discovery_function=discover_aci_bgp_peer_entry,
     check_function=check_aci_bgp_peer_entry,
-    check_ruleset_name='aci_bgp_peer_entry_levels',
+    check_ruleset_name="aci_bgp_peer_entry_levels",
     check_default_parameters=DEFAULT_BGP_RATE_LEVELS,
 )
