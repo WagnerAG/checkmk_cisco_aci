@@ -1,0 +1,18 @@
+title: ACI DOM Rx/Tx Power
+agents: special
+catalog: hw
+license: GPLv2
+distribution: check_mk
+description:
+ ACI DOM Rx/Tx Power check:
+ {'/api/class/ethpmDOMRxPwrStats.json'}
+ {'/api/class/ethpmDOMTxPwrStats.json'}
+
+ If the DOM has an alert, the check will be {{WARN}}
+ Additionally, there are {{WARN}} and  {{CRIT}} thresholds on the Rx/Tx values based on settings in the ACI.
+
+discovery:
+ By default all DOMs the agent reports will be inventorized. Using the discovery rule 'Cisco ACI interface and switch port discovery' 
+ it is possible to specify if the port name shall be shown in long or short representation ('Ethernet' or 'eth' respectively) 
+ and if the interface ID shall be padded.
+ 

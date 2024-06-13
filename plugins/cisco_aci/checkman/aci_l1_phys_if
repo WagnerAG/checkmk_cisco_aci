@@ -1,0 +1,20 @@
+title: ACI L1 phys if
+agents: special
+catalog: hw
+license: GPLv2
+distribution: check_mk
+description:
+  ACI L1 phys interface check:
+  {'/node/mo/<interface-dn>/phys.json'}
+  {'/api/class/rmonEtherStats.json'}
+  {'/api/class/rmonDot3Stats.json'}
+
+  Combines the data of these endpoints and shows information about port status, as well as FCS, CRC and stomped CRC errors.
+
+  The {{WARN}} and {{CRIT}} alert thresholds for the interface error rates can be configured via WATO. Default Levels are
+
+discovery:
+  Using the discovery rule 'Cisco ACI interface and switch port discovery' one can configure the operational and admin state 
+  of the ports that shall be discovered. It is also possible to specify if the port name shall be shown in long or short 
+  representation ('Ethernet' or 'eth' respectively) and if the interface ID shall be padded.
+

@@ -1,0 +1,15 @@
+title: ACI BGP peer entry
+agents: special
+catalog: hw
+license: GPLv2
+distribution: check_mk
+description:
+ ACI BGP peer entry Check:
+ {'/api/class/bgpPeerEntry.json'}
+
+ There are configurable {{WARN}} and {{CRIT}} thresholds for the BGP drop rate.
+ Also, if the operational status is 'idle', the check will become {{WARN}}. If the operational status is not 'established', it will become {{CRIT}}
+
+discovery:
+ All BGP peer entries the agent reports will be inventorized.
+
