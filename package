@@ -1,11 +1,11 @@
 {
     'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
-    'version': '0.7.18',
-    'version.min_required': '2.0.0p1',
-    'version.packaged': '2.0.0p27',
+    'version': '1.0.0',
+    'version.min_required': '2.3.0p1',
+    'version.packaged': '2.3.0p6',
     'author': u'Roger Ellenberger',
-    'description': u'Cisco ACI monitoring agent for cmk2.0. Original version by Samuel Zehnder <zehnder@netcloud.ch>',
+    'description': u'Cisco ACI monitoring agent for cmk2.3. Original version by Samuel Zehnder <zehnder@netcloud.ch>',
     'download_url': 'https://github.com/WagnerAG/checkmk_cisco_aci',
     'files': {
         'agent_based': [
