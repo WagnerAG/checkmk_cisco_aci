@@ -1,0 +1,784 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# This is free software;  you can redistribute it and/or modify it
+# under the  terms of the  GNU General Public License  as published by
+# the Free Software Foundation in version 2.  check_mk is  distributed
+# in the hope that it will be useful, but WITHOUT ANY WARRANTY;  with-
+# out even the implied warranty of  MERCHANTABILITY  or  FITNESS FOR A
+# PARTICULAR PURPOSE. See the  GNU General Public License for more de-
+# tails. You should have  received  a copy of the  GNU  General Public
+# License along with GNU Make; see the file  COPYING.  If  not,  write
+# to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
+# Boston, MA 02110-1301 USA.
+
+"""
+Nagios CMK Datasource Programm to check Cisco ACI
+
+Authors:    Samuel Zehnder <zehnder@netcloud.ch>
+            Roger Ellenberger <roger.ellenberger@wagner.ch>
+
+"""
+
+from collections import defaultdict
+from enum import Enum, unique
+import itertools
+import threading
+import concurrent.futures
+from typing import Dict, List, Set, Optional, Sequence, Tuple, NamedTuple
+from dataclasses import dataclass
+import logging
+
+import time
+import json
+from urllib.parse import urljoin
+import requests
+from os.path import join
+
+from cmk.special_agents.v0_unstable.argument_parsing import (
+    Args, create_default_argument_parser)
+
+from cmk.special_agents.utils import (
+    SectionWriter,
+    ConditionalPiggybackSection,
+)
+
+
+LOGGING = logging.getLogger("agent_cisco_aci")
+
+requests.packages.urllib3.disable_warnings()
+
+MAX_RETRIES: str = 3
+SLEEP_SECONDS: str = 3
+
+VERSION: float = 0.7
+NAME: str = "agent_cisco_aci"
+
+DEFAULT_SEPARATOR: str = '|'
+
+
+###############################################################################
+# Models                                                                      #
+###############################################################################
+
+class Apic:
+
+    def __init__(self, args) -> None:
+        url, session = self._log_into_aci(args)
+        self.url = url
+        self.session = session
+
+    def _log_into_aci(self, args):
+        num_hosts = len(args.host)
+
+        for i, host in enumerate(args.host, start=1):
+            url = f'https://{host}/api/'
+            try:
+                session = self._login(url, args.user, args.password)
+                break
+            except requests.exceptions.ConnectionError as e:
+                self._handle_error(current_host=i, num_hosts=num_hosts,
+                                   desc='Could not reach APIC (!!)', error=e, exit_code=2)
+
+            except requests.HTTPError as e:
+                self._handle_error(current_host=i, num_hosts=num_hosts,
+                                   desc=f'Could not login to ACI, Error: {e.message}', exit_code=3)
+
+            except Exception as e:
+                self._handle_error(current_host=i, num_hosts=num_hosts,
+                                   desc='Error occurred!', exit_code=3, error=e)
+
+        return url, session
+
+    @staticmethod
+    def _login(url, user, pwd) -> requests.Session:
+        """APIC Login"""
+
+        creds = {"aaaUser": {"attributes": {"name": user, "pwd": pwd}}}
+
+        counter = 1
+        s = requests.Session()
+        response = s.post(url + "aaaLogin.json", json=creds, verify=False, timeout=2.0)
+
+        while response.status_code == requests.codes.unauthorized:
+            if counter > MAX_RETRIES:
+                raise requests.HTTPError(json.loads(response.text)["imdata"][0]["error"]["attributes"]["text"])
+            time.sleep(SLEEP_SECONDS)
+            response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.0)
+            counter += 1
+
+        response.raise_for_status()
+
+        return s
+
+    @staticmethod
+    def _handle_error(current_host: int, num_hosts: int, desc: str, exit_code: int, error: Optional[Exception]):
+        if (current_host >= num_hosts):
+            LOGGING.error(desc)
+            if error:
+                LOGGING.error(error)
+            exit(exit_code)
+
+    def get_imdata(self, endpoint: str) -> List:
+        response = self.session.get(urljoin(self.url, endpoint))
+        response.raise_for_status()
+        return response.json()['imdata']
+
+    def get_data_from_class(self, aci_class: str) -> List:
+        result = self.get_imdata(endpoint=f'class/{aci_class}.json')
+        return [item[aci_class]['attributes'] for item in result]
+
+
+@dataclass
+class AciNode:
+    name: str
+    role: str
+    state: str
+    serial: str
+    node_id: str
+    health: str = "-1"
+    model: str = "unknown"
+    descr: str = ""
+
+    def build_node_output(self) -> Tuple:
+        if self.role == 'controller':
+            node_info = (self.role, self.node_id, self.name, self.state, self.serial,
+                         self.model, self.descr)
+        else:
+            node_info = (self.role, self.node_id, self.name, self.state, self.health,
+                         self.serial, self.model, self.descr)
+
+        node_info = tuple(map(str.strip, node_info))  # sanitize strings
+
+        return node_info
+
+    @property
+    def node_str(self):
+        return f'node-{self.node_id}'
+
+
+@dataclass
+class AciTenant:
+    """
+    # Representes ACI `fvTenant` with health
+
+    imdata object returned from the fabric looks like this (comments added from the docs):
+    ```
+    {
+        "fvTenant": {   # A policy owner in the virtual fabric. A tenant can be either a private or a shared entity.
+                        # For example, you can create a tenant with contexts and bridge domains shared by other tenants.
+                        # A shared type of tenant is typically named common, default, or infra.
+            "attributes": {
+                "annotation": "",                               # NO COMMENTS
+                "childAction": "",                              # Delete or ignore. For internal use only.
+                "descr": "Management Tenant",                   # The description of the tenant
+                "dn": "uni/tn-LAB",                             # A tag or metadata is a non-hierarchical keyword or term assigned to the fabric module
+                "extMngdBy": "",                                # NO COMMENTS
+                "lcOwn": "local",                               # A value that indicates how this object was created. For internal use only.
+                "modTs": "2021-04-29T14:11:09.104+01:00",       # The time when this object was last modified
+                "monPolDn": "uni/tn-common/monepg-default",     # Monitoring policy attached to this observable object
+                "name": "LAB",                                  # The name of the tenant
+                "nameAlias": "",                                # NO COMMENTS
+                "ownerKey": "",                                 # The key for enabling clients to own their data for entity correlation
+                "ownerTag": "",                                 # A tag for enabling clients to add their own data. For example, to indicate who created this object.
+                "status": "",                                   # The upgrade status. This property is for internal use only.
+                "uid": "15374"                                  # A unique identifier for this object
+            },
+
+            "children": [
+                {
+                    "healthInst": {
+                        "attributes": {
+                            "childAction": "",      # Delete or ignore. For internal use only.
+                            "chng": "1",            # The percentage change of the current value compared to the previous value
+                            "cur": "98",            # The current value of the health score
+                            "maxSev": "cleared",    # The percentage change of the current value compared to the previous value
+                            "prev": "97",           # Holds the previous value of the health score
+                            "rn": "health",         # Identifies an object from its siblings within the context of its parent object. The distinguished name contains a sequence of relative names.
+                            "status": "",           # The upgrade status. This property is for internal use only
+                            "twScore": "98",        # The minimum value reached
+                            "updTs": "2022-11-20T20:12:49.920+01:00" . # Indicates timestamp when the health score was last updated
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    ```
+    """
+    name: str
+    descr: str
+    dn: str
+    health_score: str
+
+    @staticmethod
+    def get_header():
+        return '#' + (DEFAULT_SEPARATOR.join([
+            'name',
+            'descr',
+            'dn',
+            'health_score',
+        ]))
+
+    def __repr__(self):
+        return DEFAULT_SEPARATOR.join(str(s) for s in [
+            self.name,
+            self.descr,
+            self.dn,
+            self.health_score,
+        ])
+
+
+class PhysicalInterfaces(NamedTuple):
+    phys_iface: List
+    ether_stats_filtered: Dict
+    dot3_stats_filtered: Dict
+    phys_iface_details: Dict
+
+    @staticmethod
+    def _build_dn(dn: str, aci_class: str) -> str:
+        return join(dn, aci_class)
+
+    def get_ether_stats(self, dn: str) -> Dict:
+        dn = self._build_dn(dn, 'dbgEtherStats')
+        return self.ether_stats_filtered.get(dn, {})
+
+    def get_dot3_stats(self, dn: str) -> Dict:
+        dn = self._build_dn(dn, 'dbgDot3Stats')
+        return self.dot3_stats_filtered.get(dn, {})
+
+    def get_phys_iface(self, dn: str) -> Dict:
+        dn = self._build_dn(dn, 'phys')
+        return self.phys_iface_details.get(dn, {})
+
+
+class InterfaceDetails(NamedTuple):
+    dn: str
+    id: str
+    admin_state: str
+    layer: str
+    crc_errors: str
+    fcs_errors: str
+    op_state: str
+    op_speed: str
+
+    def get_interface_details(interface: Dict, data: PhysicalInterfaces) -> 'InterfaceDetails':
+        iface_dn: str = interface['dn']
+        return InterfaceDetails(
+            dn=iface_dn,
+            id=interface['id'],
+            admin_state=interface['adminSt'],
+            layer=interface['layer'],
+            crc_errors=data.get_ether_stats(iface_dn).get('cRCAlignErrors'),
+            fcs_errors=data.get_dot3_stats(iface_dn).get('fCSErrors'),
+            op_state=data.get_phys_iface(iface_dn).get('operSt'),
+            op_speed=data.get_phys_iface(iface_dn).get('operSpeed'),
+        )
+
+    @staticmethod
+    def get_header():
+        return '#' + (DEFAULT_SEPARATOR.join([
+            'dn',
+            'id',
+            'admin_state',
+            'layer',
+            'crc_errors',
+            'fcs_errors',
+            'op_state',
+            'op_speed',
+        ]))
+
+    def __repr__(self):
+        return DEFAULT_SEPARATOR.join(str(s) for s in [
+            self.dn,
+            self.id,
+            self.admin_state,
+            self.layer,
+            self.crc_errors,
+            self.fcs_errors,
+            self.op_state,
+            self.op_speed,
+        ])
+
+    @property
+    def node_str(self):
+        return self.dn.split('/')[2]
+
+
+@unique
+class PwrStatType(Enum):
+    RX: str = 'rx'
+    TX: str = 'tx'
+
+
+class DomPwrStatsValues(NamedTuple):
+    type: PwrStatType
+    alert: str
+    status: str
+    hi_alarm: str
+    hi_warn: str
+    lo_alarm: str
+    lo_warn: str
+    value: str
+
+    @staticmethod
+    def get_pwr_stats(data: Dict, stats_type: PwrStatType) -> 'DomPwrStatsValues':
+        return DomPwrStatsValues(
+            type=stats_type.value,
+            alert=data.get('alert', 'n/a'),
+            status='none' if data.get('status', 'n/a') == '' else data.get('status', 'n/a'),
+            hi_alarm=data.get('hiAlarm', 'n/a'),
+            hi_warn=data.get('hiWarn', 'n/a'),
+            lo_alarm=data.get('loAlarm', 'n/a'),
+            lo_warn=data.get('loWarn', 'n/a'),
+            value=data.get('value', 'n/a'),
+        )
+
+    def __repr__(self):
+        return DEFAULT_SEPARATOR.join(str(s) for s in [
+            self.alert,
+            self.status,
+            self.hi_alarm,
+            self.hi_warn,
+            self.lo_alarm,
+            self.lo_warn,
+            self.value,
+        ])
+
+
+class DomPwrStats(NamedTuple):
+    dn: str
+    rx: DomPwrStatsValues
+    tx: DomPwrStatsValues
+
+    @staticmethod
+    def get_pwr_stats(rx_data: Dict, tx_stats: Dict) -> 'DomPwrStats':
+        """builds a DomPwrStats object with a given element form """
+        rx_dn: str = rx_data.get('dn', 'n/a')
+        tx_dn: str = rx_dn.replace('rxpower', 'txpower')
+        iface_dn: str = rx_dn.replace('/domstats/rxpower', '')
+
+        tx_data: Dict = tx_stats.get(tx_dn, {})
+
+        return DomPwrStats(
+            dn=iface_dn,
+            rx=DomPwrStatsValues.get_pwr_stats(rx_data, stats_type=PwrStatType.RX),
+            tx=DomPwrStatsValues.get_pwr_stats(tx_data, stats_type=PwrStatType.TX),
+        )
+
+    @staticmethod
+    def get_header():
+        return '#' + (DEFAULT_SEPARATOR.join([
+            'iface_dn',
+            'rx_alert',
+            'rx_status',
+            'rx_hi_alarm',
+            'rx_hi_warn',
+            'rx_lo_alarm',
+            'rx_lo_warn',
+            'rx_value',
+            'tx_alert',
+            'tx_status',
+            'tx_hi_alarm',
+            'tx_hi_warn',
+            'tx_lo_alarm',
+            'tx_lo_warn',
+            'tx_value',
+        ]))
+
+    def __repr__(self):
+        return (f'{self.dn}{DEFAULT_SEPARATOR}{self.rx}{DEFAULT_SEPARATOR}{self.tx}')
+
+    @property
+    def node_str(self):
+        return self.dn.split('/')[2]
+
+
+###############################################################################
+# Threading helpers                                                           #
+###############################################################################
+
+thread_local = threading.local()
+
+
+def get_session(apic: Apic) -> requests.Session:
+    if not hasattr(thread_local, "session"):
+        thread_local.session = requests.Session()
+        thread_local.session.cookies = apic.session.cookies.copy()
+    return thread_local.session
+
+
+def get_interface_details(dn: str, apic: Apic):
+    with get_session(apic).get(urljoin(apic.url, f'node/mo/{dn}/phys.json'), verify=False) as response:
+        response.raise_for_status()
+        return response.json()['imdata'][0]['ethpmPhysIf']['attributes']
+
+
+###############################################################################
+# Data fetchers                                                               #
+###############################################################################
+
+def get_aci_health(apic: Apic):
+    """Get Fabric Health Score"""
+
+    imdata = apic.get_imdata('node/mo/topology/health.json')
+    health_score = imdata[0]["fabricHealthTotal"]["attributes"]["cur"]
+
+    return int(health_score)
+
+
+def get_tenants(apic: Apic) -> List[AciTenant]:
+    imdata = apic.get_imdata('node/class/fvTenant.json?rsp-subtree-include=health')
+    tenants = []
+
+    for fv_tenant in imdata:
+        tenant_attr = fv_tenant['fvTenant']['attributes']
+        tenant_children = fv_tenant['fvTenant']['children']
+        health_attr = next(child['healthInst']['attributes'] for child in tenant_children if 'healthInst' in child)
+
+        tenants.append(AciTenant(
+            name=tenant_attr['name'],
+            descr=tenant_attr['descr'],
+            dn=tenant_attr['dn'],
+            health_score=health_attr['cur'],
+        ))
+
+    return tenants
+
+
+def get_nodes(apic: Apic) -> Dict:
+    response = apic.session.get(apic.url + 'node/class/topSystem.json?query-target=self&rsp-subtree=children&'
+                                'rsp-subtree-class=eqptCh&rsp-subtree-include=health')
+    response.raise_for_status()
+    nodes = response.json()['imdata']
+    nodelist = dict(spine=[], leaf=[], controller=[])
+
+    for node in nodes:
+        aci_node = AciNode(
+            name = node['topSystem']['attributes']['name'],
+            role = node['topSystem']['attributes']['role'],
+            state = node['topSystem']['attributes']['state'],
+            serial = node['topSystem']['attributes']['serial'],
+            node_id = node['topSystem']['attributes']['id'],
+        )
+
+        for child in node['topSystem']['children']:
+            if 'healthInst' in child:
+                aci_node.health = child['healthInst']['attributes']['cur']
+            if 'eqptCh' in child:
+                aci_node.descr = child['eqptCh']['attributes']['descr']
+                aci_node.model = child['eqptCh']['attributes']['model']
+
+        nodelist[aci_node.role].append(aci_node)
+
+    return nodelist
+
+
+def get_faults(session, url):
+    response = session.get(url + 'node/mo/fltCnts.json')
+    response.raise_for_status()
+    faults = response.json()['imdata'][0]['faultCountsWithDetails']['attributes']
+    return faults['crit'], faults['warn'], faults['maj'], faults['minor']
+
+
+def get_versions(session, url):
+    response = session.get(url + 'node/class/firmwareCtrlrRunning.json')
+    response.raise_for_status()
+    versions = response.json()['imdata']
+
+    running = []
+    for version in versions:
+        ctrl_id = version['firmwareCtrlrRunning']['attributes']['dn'].split('/')[2]
+        version = version['firmwareCtrlrRunning']['attributes']['version']
+        running.append((ctrl_id, version))
+
+    response = session.get(url + 'node/class/firmwareRunning.json')
+    response.raise_for_status()
+    versions = response.json()['imdata']
+    for version in versions:
+        node_id = version['firmwareRunning']['attributes']['dn'].split('/')[2]
+        version = version['firmwareRunning']['attributes']['version']
+        running.append((node_id, version))
+
+    return running
+
+
+def get_phys_iface(apic: Apic, only_iface_admin_up: bool, aci_nodes: Dict[str, str]):
+    raw_data: PhysicalInterfaces = __collect_data(apic, only_iface_admin_up)
+    preprocessed_data: List[InterfaceDetails] = __merge_data(raw_data)
+    grouped_data: Dict[str, InterfaceDetails] = __group_interface_by_host(preprocessed_data, aci_nodes)
+
+    return grouped_data
+
+
+def __collect_data(apic: Apic, only_iface_admin_up: bool) -> PhysicalInterfaces:
+    phys_iface: List = apic.get_data_from_class(aci_class='l1PhysIf')
+
+    if only_iface_admin_up:
+        phys_iface = [iface for iface in phys_iface if (iface['adminSt'] == 'up')]
+
+    ether_stats: List = apic.get_data_from_class(aci_class='rmonEtherStats')
+    dot3_stats: List = apic.get_data_from_class(aci_class='rmonDot3Stats')
+
+    phys_iface_dn: Set = {iface['dn'] for iface in phys_iface}
+    ether_stats_filtered: Dict = filter_stats(ether_stats, 'dbgEtherStats', phys_iface_dn)
+    dot3_stats_filtered: Dict = filter_stats(dot3_stats, 'dbgDot3Stats', phys_iface_dn)
+
+    phys_iface_details = __collect_phys_iface_details(apic, phys_iface_dn)
+
+    return PhysicalInterfaces(phys_iface, ether_stats_filtered, dot3_stats_filtered, phys_iface_details)
+
+
+def __collect_phys_iface_details(apic: Apic, phys_iface_dn: Set):
+    """collected phys interface details using threaded parallel calls"""
+    def calc_parallel_threads(interface_count: int, div_factor: int = 8, max_threads: int = 50) -> int:
+        candidate = interface_count // div_factor
+        return candidate if candidate < max_threads else max_threads
+
+    def get_interface_details_wrapper(phys_iface_dn: str, apic: Apic = apic):
+        return get_interface_details(phys_iface_dn, apic)
+
+    worker_threads: int = calc_parallel_threads(interface_count=len(phys_iface_dn))
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=worker_threads) as executor:
+        return {iface['dn']: iface for iface in list(executor.map(get_interface_details_wrapper, phys_iface_dn))}
+
+
+def __merge_data(data: PhysicalInterfaces) -> List[InterfaceDetails]:
+    merged_data = []
+
+    for iface in data.phys_iface:
+        merged_data.append(InterfaceDetails.get_interface_details(iface, data))
+
+    return merged_data
+
+
+def __group_interface_by_host(iface_stats: List[InterfaceDetails], aci_nodes: Dict[str, str]):
+    grouped_interfaces = defaultdict(list)
+
+    for iface in iface_stats:
+        grouped_interfaces[aci_nodes[iface.node_str]].append(iface)
+
+    return dict(grouped_interfaces)
+
+
+def get_pwr_stats(apic: Apic, aci_nodes: Dict):
+    # fetch data
+    rx_pwr_stats = apic.get_data_from_class('ethpmDOMRxPwrStats')
+    tx_pwr_stats = apic.get_data_from_class('ethpmDOMTxPwrStats')
+
+    tx_pwr_stats_mapping = {tx['dn']: tx for tx in tx_pwr_stats}
+
+    # transform
+    pwr_stats_by_node = defaultdict(list)
+    for rx in rx_pwr_stats:
+        stat = DomPwrStats.get_pwr_stats(rx, tx_pwr_stats_mapping)
+        pwr_stats_by_node[aci_nodes[stat.node_str]].append(stat)
+
+    return pwr_stats_by_node
+
+
+###############################################################################
+# General helper functions                                                    #
+###############################################################################
+
+def prepare_dict_for_writer(result_obj: Dict, fields: Tuple) -> str:
+    def _prepare(field) -> str:
+        return str(result_obj.get(field, 'n/a')).replace(DEFAULT_SEPARATOR, '//')
+
+    selected_data = [_prepare(field) for field in fields]
+    return DEFAULT_SEPARATOR.join(selected_data)
+
+
+def _transform_nodes_to_lookup_table(aci_nodes: Dict[str, List[AciNode]]) -> List:
+    """transform dict of nodes separated by type to lookup table
+
+    transform such an input:
+    {'spine': [AciNode(...)], 'leaf': [AciNode(...), AciNode(...)], 'controller': [AciNode(...)]}
+
+    into such a lookup dict:
+    {'node-1': 'aci-ctrl.example.com', 'node-101': 'aci-spine-101.example.com', 'node-111': 'aci-leaf-111.example.com'}
+    """
+    node_list = list(itertools.chain(*aci_nodes.values()))
+    return {node.node_str: node.name for node in node_list}
+
+
+def filter_stats(stats: List, aci_class: str, phys_iface_dn: Set):
+    return {stats['dn']: stats for stats in stats if _strip_dn(stats['dn'], aci_class) in phys_iface_dn}
+
+
+def _strip_dn(dn: str, aci_class: str) -> str:
+    return dn.replace(aci_class, '').strip('/')
+
+
+###############################################################################
+# output writers                                                              #
+###############################################################################
+
+def output_aci_nodes(all_nodes: Dict[str, List[AciNode]]):
+    for node_type, nodes in all_nodes.items():
+        with SectionWriter(f'aci_{node_type}', separator=DEFAULT_SEPARATOR) as writer:
+            for node in nodes:
+                writer.append(DEFAULT_SEPARATOR.join(node.build_node_output()))
+
+
+def output_aci_health(apic):
+    health_score = get_aci_health(apic)
+
+    with SectionWriter('aci_health', separator=DEFAULT_SEPARATOR) as writer:
+        writer.append(DEFAULT_SEPARATOR.join(('health', str(health_score), *get_faults(apic.session, apic.url))))
+
+
+def output_tenants(apic: Apic):
+    tenants: List[AciTenant] = get_tenants(apic)
+
+    with SectionWriter('aci_tenants', separator=DEFAULT_SEPARATOR) as writer:
+        writer.append(AciTenant.get_header())
+        for tenant in tenants:
+            writer.append(tenant)
+
+
+def output_aci_version(url, session):
+    versions = get_versions(session, url)
+
+    with SectionWriter('aci_version', separator=DEFAULT_SEPARATOR) as writer:
+        for node, version in versions:
+            writer.append(f'{node}{DEFAULT_SEPARATOR}{version}')
+
+
+def output_header():
+    with SectionWriter('check_mk', separator=' ') as writer:
+        writer.append(f'Version: {NAME}-{VERSION}')
+        writer.append('AgentOS: Cisco ACI')
+
+
+def output_aci_class_attributes(apic: Apic, title: str, aci_class: str, fields: Tuple):
+    LOGGING.info(f'fetch and write {title} section')
+    results = apic.get_data_from_class(aci_class)
+
+    with SectionWriter(f'aci_{title}', separator=DEFAULT_SEPARATOR) as writer:
+        writer.append('#' + (DEFAULT_SEPARATOR.join(fields)))
+        if isinstance(results, list):
+            for result_obj in results:
+                writer.append(prepare_dict_for_writer(result_obj, fields))
+        else:
+            writer.append(results)
+
+
+def output_bgp_peer_entry(apic: Apic):
+    output_aci_class_attributes(
+        apic, title='bgp_peer_entry', aci_class='bgpPeerEntry',
+        fields=('addr', 'connAttempts', 'connDrop', 'connEst', 'localIp', 'localPort', 'operSt', 'remotePort', 'type',)
+    )
+
+
+def output_fault_inst(apic: Apic):
+    output_aci_class_attributes(
+        apic, title='fault_inst', aci_class='faultInst',
+        fields=('severity', 'code', 'descr', 'dn', 'ack'),
+    )
+
+
+def output_iface_stats(apic: Apic, only_iface_admin_up: bool, aci_nodes: Dict[str, str], dns_domain: str):
+    section_name: str = 'aci_l1_phys_if'
+    LOGGING.info(f'fetch and write {section_name} section')
+
+    iface_stats: Dict[str, List] = get_phys_iface(apic, only_iface_admin_up, aci_nodes)
+
+    for node, iface in iface_stats.items():
+        with ConditionalPiggybackSection(f'{node}.{dns_domain}' if dns_domain else node):
+            with SectionWriter(section_name, separator=DEFAULT_SEPARATOR) as writer:
+                writer.append(InterfaceDetails.get_header())
+                for line in iface:
+                    writer.append(line)
+
+
+def output_dom_rx_pwr_stats(apic: Apic, aci_nodes: Dict[str, str], dns_domain: str):
+    section_name: str = 'aci_dom_pwr_stats'
+    LOGGING.info(f'fetch and write {section_name} section')
+
+    pwr_stats_by_node = get_pwr_stats(apic, aci_nodes)
+
+    for node, pwr_stats in pwr_stats_by_node.items():
+        with ConditionalPiggybackSection(f'{node}.{dns_domain}' if dns_domain else node):
+            with SectionWriter(section_name, separator=DEFAULT_SEPARATOR) as writer:
+                writer.append(DomPwrStats.get_header())
+                for stat in pwr_stats:
+                    writer.append(stat)
+
+
+###############################################################################
+# Main workflow                                                               #
+###############################################################################
+
+def agent_cisco_aci_main(args: Args) -> None:
+    """Establish a connection to ACI controller and get version, health, and node information"""
+
+    LOGGING.info("setup HTTPS connection..")
+    apic = Apic(args)
+    url, session = apic.url, apic.session
+
+    LOGGING.info("write agent header..")
+    output_header()
+
+    LOGGING.info("fetch and write version info..")
+    output_aci_version(url, session)
+
+    LOGGING.info("fetch and write health status..")
+    output_aci_health(apic)
+
+    LOGGING.info("fetch and write tenants..")
+    output_tenants(apic)
+
+    LOGGING.info("fetch and write node info..")
+    all_nodes = get_nodes(apic)
+    output_aci_nodes(all_nodes)
+
+    if not args.skip_bgp_peer_entry:
+        output_bgp_peer_entry(apic)
+
+    if not args.skip_fault_inst:
+        output_fault_inst(apic)
+
+    if not args.skip_l1_phys_if:
+        output_iface_stats(
+            apic, args.only_iface_admin_up,
+            aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
+            dns_domain=args.dns_domain,
+        )
+
+    if not args.skip_dom_pwr_stats:
+        output_dom_rx_pwr_stats(
+            apic,
+            aci_nodes=_transform_nodes_to_lookup_table(all_nodes),
+            dns_domain=args.dns_domain,
+        )
+
+    LOGGING.info("All done. cheers.")
+
+
+###############################################################################
+# Argument parsing                                                            #
+###############################################################################
+
+def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
+    parser = create_default_argument_parser(description=__doc__)
+    parser.add_argument('-H', '--host', type=str, required=True, metavar="HOST", nargs='+',
+                        help='APIC IP, multiple IPs (Ctrls) accepted')
+    parser.add_argument('-D', '--dns-domain', type=str, required=False, metavar="DOMAIN",
+                        help='DNS domain of nodes (used to correctly name piggyback hosts)')
+    parser.add_argument('-u', '--user', type=str, required=True, metavar="USER", help='ACI Username')
+    parser.add_argument('-p', '--password', type=str, required=True, metavar="PASSWORD", help='ACI Password')
+    parser.add_argument('--only-iface-admin-up', action="store_true", required=False, default=False,
+                        help='Only monitor interfaces in admin state "up"')
+
+    parser.add_argument('--skip-bgp-peer-entry', action="store_true", required=False, default=False,
+                        help='skip processing section aci_bgp_peer_entry')
+    parser.add_argument('--skip-fault-inst', action="store_true", required=False, default=False,
+                        help='skip processing section aci_fault_inst')
+    parser.add_argument('--skip-l1-phys-if', action="store_true", required=False, default=False,
+                        help='skip processing section aci_l1_phys_if')
+    parser.add_argument('--skip-dom-pwr-stats', action="store_true", required=False, default=False,
+                        help='skip processing section aci_dom_pwr_stats')
+
+    return parser.parse_args(argv)
