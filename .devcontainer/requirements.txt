@@ -1,5 +1,6 @@
-flake8
+urllib3<2
 pytest
 pytest-cov
 requests-mock
 freezegun
+ruff
