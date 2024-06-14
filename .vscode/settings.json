@@ -1,12 +1,19 @@
 {
-    "python.pythonPath": "/omd/sites/cmk/bin/python3",
-    "python.analysis.extraPaths": ["/opt/omd/versions/2.0.0p20.cre/lib/python3/cmk/base/api/agent_based"],
-    "python.linting.flake8Enabled": true,
-    "python.linting.enabled": true,
+    "python.analysis.exclude": [
+       "/omd/sites/cmk/lib/**",
+       "/omd/sites/cmk/version/**",
+       "/omd/sites/cmk/share/**",
+       "/omd/sites/cmk/include/**",
+       "/omd/sites/cmk/bin/**",
+       "/omd/sites/cmk/etc/**",
+    ],
     "python.testing.pytestArgs": [
         "."
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.nosetestsEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "files.associations": {
+        "package": "python"
+    },
+    "python.defaultInterpreterPath": "/omd/sites/cmk/bin/python3"
 }
