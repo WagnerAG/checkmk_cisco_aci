@@ -11,7 +11,9 @@ jobs:
     name: Build Release Package
     runs-on: ubuntu-latest
     container:
-      image: checkmk/check-mk-raw:2.0.0-latest
+      image: checkmk/check-mk-raw:2.3.0-latest
+    permissions:
+      contents: write
 
     env:
       OMD_ROOT: /omd/sites/cmk
@@ -22,32 +24,26 @@ jobs:
     steps:
       - name: Initialize Checkmk Site
         run: /docker-entrypoint.sh /bin/true
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - name: Parse Package File
+        run: |
+          NAME=$(python3 -c 'print(eval(open("package").read())["name"])')
+          VERSION=$(python3 -c 'print(eval(open("package").read())["version"])')
+          echo "CMKPKG_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "CMKPKG_VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Setup links
         run: .devcontainer/symlink.sh
-      - name: Update GITHUB_PATH
-        run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
       - name: Build Extension
-        run: .devcontainer/build.sh
+        run: |
+          chown -R cmk:cmk $GITHUB_WORKSPACE
+          su -l -c "mkp -v package $GITHUB_WORKSPACE/package" cmk
+          cp /omd/sites/cmk/var/check_mk/packages_local/${CMKPKG_NAME}-${CMKPKG_VERSION}.mkp .
+          echo "pkgfile=${CMKPKG_NAME}-${CMKPKG_VERSION}.mkp" >> $GITHUB_OUTPUT
         id: cmkpkg
-
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ steps.cmkpkg.outputs.pkgfile }}
-          asset_name:  ${{ steps.cmkpkg.outputs.pkgfile }}
-          asset_content_type: application/octet-stream
+          files: ${{ steps.cmkpkg.outputs.pkgfile }}
