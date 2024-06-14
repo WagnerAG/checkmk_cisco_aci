@@ -5,7 +5,6 @@
 # License: GNU General Public License v2
 
 import sys
-from special_agents.agent_cisco_aci import agent_cisco_aci_main
-
+from cmk_addons.plugins.cisco_aci.special_agents.agent_cisco_aci import main
 if __name__ == "__main__":
-    sys.exit(agent_cisco_aci_main())
+    sys.exit(main())
