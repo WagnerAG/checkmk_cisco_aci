@@ -4,11 +4,12 @@
     'version': '1.0.0',
     'version.min_required': '2.3.0p1',
     'version.packaged': '2.3.0p6',
+    'version.usable_until': '2.3.0',
     'author': u'Roger Ellenberger',
     'description': u'Cisco ACI monitoring agent for cmk2.3. Original version by Samuel Zehnder <zehnder@netcloud.ch>',
     'download_url': 'https://github.com/WagnerAG/checkmk_cisco_aci',
     'files': {
-        'agent_based': [
+        'plugins/cisco_aci/checkman': [
             'aci_bgp_peer_entry.py',
             'aci_controller.py',
             'aci_dom_pwr_stats.py',
@@ -22,8 +23,11 @@
             'aci_tenants.py',
             'aci_version.py'
         ],
-        'agents': ['special/agent_cisco_aci'],
-        'checkman': [
+        'plugins/cisco_aci/libexec': ['agent_cisco_aci'],
+        'plugins/cisco_aci/rulesets': ['agent_cisco_aci.py'],
+        'plugins/cisco_aci/server_side_calls': ['agent_cisco_aci.py'],
+        'plugins/cisco_aci/special_agents': ['agent_cisco_aci.py'],
+        'plugins/cisco_aci/checkman': [
             'aci_bgp_peer_entry',
             'aci_controller',
             'aci_dom_pwr_stats',
@@ -35,17 +39,9 @@
             'aci_tenants',
             'aci_version'
         ],
-        'checks': ['agent_cisco_aci'],
-        'doc': [],
-        'inventory': [],
-        'notifications': [],
-        'pnp-templates': [],
-        'web': [
-            'plugins/metrics/cisco_aci_metrics.py',
-            'plugins/perfometer/cisco_aci_perfometer.py',
-            'plugins/wato/agent_cisco_aci.py',
-            'plugins/wato/cisco_aci_check_parameters.py',
-            'plugins/wato/cisco_aci_discovery_parameters.py',
+        'plugins/cisco_aci/graphing': [
+            'metrics.py',
+            'perfometer.py',
         ]
     }
 }
