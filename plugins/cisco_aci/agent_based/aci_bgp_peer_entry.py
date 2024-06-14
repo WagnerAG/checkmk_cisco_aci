@@ -142,9 +142,6 @@ def parse_aci_bgp_peer_entry(string_table) -> List[BgpPeerEntry]:
     return [BgpPeerEntry.from_string_table(line) for line in string_table if not line[0].startswith("#")]
 
 
-
-
-
 def discover_aci_bgp_peer_entry(section: List[BgpPeerEntry]) -> DiscoveryResult:
     for bgp_peer_entry in section:
         yield Service(item=bgp_peer_entry.addr)
