@@ -24,32 +24,32 @@ jobs:
     steps:
       - name: Initialize Checkmk Site
         run: /docker-entrypoint.sh /bin/true
-      - uses: actions/checkout@v2
+
+      - uses: actions/checkout@v4
       - name: Setup links
         run: .devcontainer/symlink.sh
+
       - name: Update GITHUB_PATH
         run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+
       - name: Build Extension
         run: .devcontainer/build.sh
         id: cmkpkg
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1.0.0
+        uses: elgohr/Github-Release-Action@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+          tag: ${{ github.ref }}
+          title: Release ${{ github.ref }}
 
       - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1.0.1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ steps.cmkpkg.outputs.pkgfile }}
-          asset_name:  ${{ steps.cmkpkg.outputs.pkgfile }}
-          asset_content_type: application/octet-stream
+          files: |
+            ./${{ steps.cmkpkg.outputs.pkgfile }}
