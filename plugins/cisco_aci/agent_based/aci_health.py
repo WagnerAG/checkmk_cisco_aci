@@ -21,9 +21,7 @@ Authors:    Samuel Zehnder <zehnder@netcloud.ch>
 """
 
 from __future__ import annotations
-from typing import Dict, NamedTuple, TypedDict
-
-from collections.abc import Mapping
+from typing import Dict, NamedTuple
 
 
 from cmk.agent_based.v2 import (
@@ -39,10 +37,10 @@ from cmk.agent_based.v2 import (
 )
 
 
-DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": (95, 85)}
+DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": ("fixed", (95, 85))}
 
 
-class ACIHealthValues(TypedDict):
+class ACIHealthValues(NamedTuple):
     health: int
     fcrit: int
     fwarn: int

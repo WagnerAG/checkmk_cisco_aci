@@ -33,7 +33,7 @@ from cmk.agent_based.v2 import (
 )
 
 
-DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": (95, 85)}
+DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": ("fixed", (95, 85))}
 HEALTHY_NODE_STATUS: str = "in-service"
 
 
@@ -70,6 +70,8 @@ def discover_aci_node(section: List[ACINode]) -> DiscoveryResult:
 
 
 def check_aci_node(item: str, params: Dict, section: List[ACINode]) -> CheckResult:
+
+
     for node in section:
         if node.nnid == item:
             yield from check_levels(

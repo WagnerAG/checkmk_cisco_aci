@@ -1,14 +1,14 @@
 name: pytest
 
 on:
-  push: []
+  push:
 
 jobs:
   pytest:
 
     runs-on: ubuntu-latest
     container:
-      image: checkmk/check-mk-raw:2.0.0p30
+      image: checkmk/check-mk-raw:2.3.0-latest
 
     env:
       OMD_ROOT: /omd/sites/cmk

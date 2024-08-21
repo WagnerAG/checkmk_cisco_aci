@@ -5,7 +5,7 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		// Update 'VARIANT' to pick an Ubuntu version: focal, bionic
-		"args": { "VARIANT": "2.3.0-latest" }
+		"args": { "VARIANT": "2.3.0p11" }
 	},
 
 
@@ -19,7 +19,9 @@
 				"ms-azuretools.vscode-docker",
 				"ms-python.vscode-pylance",
 				"ms-python.isort",
-				"charliermarsh.ruff"
+				"charliermarsh.ruff",
+				"GitHub.copilot",
+				"matangover.mypy"
 			],
 
             // Bash as default shell.
@@ -35,7 +37,7 @@
     "mounts": [
         // { "source": "omd-sites", "target": "/opt/omd/sites", "type": "volume" },
         { "source": "${localWorkspaceFolder}/lib", "target": "/opt/omd/sites/cmk/local/lib/python3/cmk", "type": "bind"},
-        { "source": "${localWorkspaceFolder}/plugins", "target": "/opt/omd/sites/cmk/local/lib/python3/cmk_addons/plugins", "type": "bind" },
+        { "source": "${localWorkspaceFolder}/plugins", "target": "/opt/omd/sites/cmk/local/lib/python3/cmk_addons/plugins", "type": "bind" }
     ],
 
     // Use 'postCreateCommand' to run commands after the container is created.

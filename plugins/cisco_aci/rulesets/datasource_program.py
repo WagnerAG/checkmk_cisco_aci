@@ -59,7 +59,7 @@ def _valuespec_special_agent_cisco_aci() -> Dictionary:
                 required=True,
                 parameter_form=String(
                     title=Title("ACI Username"),
-                    help_text=Help("Use the Cisco local user noation in following format. TODO"),
+                    help_text=Help("Use the Cisco local user noation in following format. apic#LOCAL\\cmk"),
                 ),
             ),
             "password": DictElement(

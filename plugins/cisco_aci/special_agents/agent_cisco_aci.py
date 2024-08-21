@@ -80,7 +80,7 @@ class Apic:
                 self._handle_error(current_host=i, num_hosts=num_hosts, desc="Could not reach APIC (!!)", error=e, exit_code=2)
 
             except requests.HTTPError as e:
-                self._handle_error(current_host=i, num_hosts=num_hosts, desc=f"Could not login to ACI, Error: {e.message}", exit_code=3)
+                self._handle_error(current_host=i, num_hosts=num_hosts, desc=f"Could not login to ACI, Error: {e}", exit_code=3)
 
             except Exception as e:
                 self._handle_error(current_host=i, num_hosts=num_hosts, desc="Error occurred!", exit_code=3, error=e)
