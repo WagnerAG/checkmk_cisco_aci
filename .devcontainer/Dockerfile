@@ -6,7 +6,7 @@ FROM checkmk/check-mk-cloud:${VARIANT}
 
 ARG USERNAME=cmk
 ARG USER_UID=501
-ARG WORKSPACE=/workspaces/checkmk_aci
+ARG WORKSPACE=/workspaces/checkmk_cisco_aci
 
 RUN /docker-entrypoint.sh /bin/true
 
