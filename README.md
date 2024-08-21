@@ -18,6 +18,7 @@ Thanks to all the contributors:
 - Samuel Zehnder (Netcloud) - developping the much loved original version of this plugin 🚀
 - Fabian Binder (comNET) - developping aci_fault_inst and wrote most of the checkman pages
 - Simon Meister (WAGNER AG) - having the lead on bringing this project to the next level + testing/bugfixing
+- Roland Wyss (WAGNER AG) - Added apic health feature
 - Roger Ellenberger (WAGNER AG) - migrating the plugin to CheckMK 2.0 and extended it
 
 
