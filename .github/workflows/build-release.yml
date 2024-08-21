@@ -5,13 +5,15 @@ on:
     tags:
     - 'v*'
     - '!v*[a-z]'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build-release:
     name: Build Release Package
     runs-on: ubuntu-latest
     container:
-      image: checkmk/check-mk-raw:2.0.0-latest
+      image: checkmk/check-mk-raw:2.2.0-latest
 
     env:
       OMD_ROOT: /omd/sites/cmk
