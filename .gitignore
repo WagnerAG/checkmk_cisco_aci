@@ -1,5 +1,6 @@
 # project specific
 output/
+temp/*
 
 # macOS
 .DS_Store
