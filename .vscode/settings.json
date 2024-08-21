@@ -1,10 +1,11 @@
 {
-    "python.defaultInterpreterPath": "/omd/sites/cmk/bin/python3",
-    "python.analysis.extraPaths": ["/opt/omd/versions/2.0.0p20.cre/lib/python3/cmk/base/api/agent_based"],
     "python.testing.pytestArgs": [
         "."
     ],
     "editor.defaultFormatter": "charliermarsh.ruff",
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "python.defaultInterpreterPath": "/omd/sites/cmk/bin/python3",
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.autoImportCompletions": true,
 }
