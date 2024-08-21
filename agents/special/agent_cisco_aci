@@ -17,7 +17,7 @@ Special Agent Datasource Programm to check Cisco ACI
 
 Authors:    Samuel Zehnder <zehnder@netcloud.ch>
             Roger Ellenberger <roger.ellenberger@wagner.ch>
-
+            Roland Wyss <roland.wyss@wagner.ch>
 """
 
 from collections import defaultdict
@@ -127,7 +127,7 @@ class Apic:
         result = self.get_imdata(endpoint=f'class/{aci_class}.json')
         return [item[aci_class]['attributes'] for item in result]
 
-
+@dataclass
 class FaultCounts:
     """
     Detailed fault counts per node
@@ -171,7 +171,7 @@ class AciNode:
             fault_maj = str(int(self.fault_counts['maj']) - int(self.fault_counts['majAcked']))
             fault_minor = str(int(self.fault_counts['minor']) - int(self.fault_counts['minorAcked']))
             fault_warn = str(int(self.fault_counts['warn']) - int(self.fault_counts['warnAcked']))
-            
+
             node_info = (self.role, self.node_id, self.name, self.state, self.serial,
                          self.model, fault_crit, fault_maj, fault_minor, fault_warn, self.descr)
         else:
