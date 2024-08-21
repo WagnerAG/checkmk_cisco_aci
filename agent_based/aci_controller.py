@@ -23,11 +23,11 @@ Authors:    Samuel Zehnder <zehnder@netcloud.ch>
 from __future__ import annotations
 from typing import List, NamedTuple
 
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
-from .agent_based_api.v1 import (
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     register,
     Result,
     Service,
@@ -90,7 +90,7 @@ def check_aci_controller(item: str, section: List[ACIController]) -> CheckResult
                     - Minor: {fault_minor}
                     - Warning: {fault_warn}
                 '''
-            
+
             if fault_crit > 0 or fault_maj > 0 or ctrl.status != HEALTHY_CONTROLLER_STATUS:
                 faults = fault_maj + fault_crit
                 yield Result(

@@ -22,11 +22,11 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 from __future__ import annotations
 from typing import Dict, NamedTuple
 
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
-from .agent_based_api.v1 import (
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     register,
     check_levels,
     Result,

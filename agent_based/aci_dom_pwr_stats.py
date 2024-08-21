@@ -24,11 +24,11 @@ from enum import Enum, unique
 from typing import List, NamedTuple, Sequence, Tuple, Dict, Optional
 import re
 
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
-from .agent_based_api.v1 import (
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     register,
     check_levels,
     Result,
