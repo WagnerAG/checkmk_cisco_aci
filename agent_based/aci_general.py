@@ -25,7 +25,7 @@ from typing import List, Tuple, Dict, Optional
 from contextlib import suppress
 from enum import Enum
 
-from .agent_based_api.v1 import ServiceLabel
+from cmk.base.plugins.agent_based.agent_based_api.v1 import ServiceLabel
 
 
 DEFAULT_DISCOVERY_PARAMS: Dict = {

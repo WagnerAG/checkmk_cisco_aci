@@ -32,7 +32,7 @@ from cmk.base.plugins.agent_based.aci_controller import (
             []
         ),
         (
-            [["controller", "1", "APIC1", "in-service", "FCH1835V2FM", "APIC-SERVER-M1", "APIC-SERVER-M1"]],
+            [["controller", "1", "APIC1", "in-service", "FCH1835V2FM", "APIC-SERVER-M1", "0", "0", "0", "0", "APIC-SERVER-M1"]],
             [
                 ACIController(
                     controller_id="1",
@@ -40,14 +40,18 @@ from cmk.base.plugins.agent_based.aci_controller import (
                     status="in-service",
                     serial="FCH1835V2FM",
                     model="APIC-SERVER-M1",
+                    fault_crit="0",
+                    fault_maj="0",
+                    fault_minor="0",
+                    fault_warn="0",
                     descr="APIC-SERVER-M1"
                 )
             ]
         ),
         (
             [
-                ["controller", "1", "APIC1", "degraded", "FCH1835V2FM", "APIC-SERVER-M1", "APIC-SERVER-M1"],
-                ["controller", "2", "ACI01", "in-service", "FCH1935V1Z8", "APIC-SERVER-M2", "APIC-SERVER-M2"],
+                ["controller", "1", "APIC1", "degraded", "FCH1835V2FM", "APIC-SERVER-M1", "0", "0", "0", "0", "APIC-SERVER-M1"],
+                ["controller", "2", "ACI01", "in-service", "FCH1935V1Z8", "APIC-SERVER-M2", "0", "0", "0", "0", "APIC-SERVER-M2"],
             ],
             [
                 ACIController(
@@ -56,6 +60,10 @@ from cmk.base.plugins.agent_based.aci_controller import (
                     status="degraded",  # this might not be an official state
                     serial="FCH1835V2FM",
                     model="APIC-SERVER-M1",
+                    fault_crit="0",
+                    fault_maj="0",
+                    fault_minor="0",
+                    fault_warn="0",
                     descr="APIC-SERVER-M1"
                 ),
                 ACIController(
@@ -64,6 +72,10 @@ from cmk.base.plugins.agent_based.aci_controller import (
                     status="in-service",
                     serial="FCH1935V1Z8",
                     model="APIC-SERVER-M2",
+                    fault_crit="0",
+                    fault_maj="0",
+                    fault_minor="0",
+                    fault_warn="0",
                     descr="APIC-SERVER-M2"
                 ),
             ]
@@ -74,13 +86,17 @@ def test_parse_aci_controller(string_table: List[List[str]], expected_section: D
     assert parse_aci_controller(string_table) == expected_section
 
 
-ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
+ACI_GROUP_WITH_CRIT_HOST: List[ACIController] = [
     ACIController(
         controller_id="1",
         name="ACI01",
         status="failied",  # this might not be an official state
         serial="FCH1935V1Z3",
         model="APIC-SERVER-M2",
+        fault_crit="0",
+        fault_maj="1",
+        fault_minor="0",
+        fault_warn="0",
         descr="APIC-SERVER-M2"
     ),
     ACIController(
@@ -89,6 +105,10 @@ ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
         status="in-service",
         serial="FCH1935V1Z8",
         model="APIC-SERVER-M2",
+        fault_crit="1",
+        fault_maj="1",
+        fault_minor="0",
+        fault_warn="0",
         descr="APIC-SERVER-M2"
     ),
     ACIController(
@@ -97,6 +117,50 @@ ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
         status="in-service",
         serial="FCH1935V1U7",
         model="APIC-SERVER-M2",
+        fault_crit="0",
+        fault_maj="0",
+        fault_minor="0",
+        fault_warn="0",
+        descr="APIC-SERVER-M2"
+    ),
+]
+
+
+ACI_GROUP_WITH_WARN_HOST: List[ACIController] = [
+    ACIController(
+        controller_id="1",
+        name="ACI01",
+        status="in-service",
+        serial="FCH1935V1Z3",
+        model="APIC-SERVER-M2",
+        fault_crit="0",
+        fault_maj="0",
+        fault_minor="1",
+        fault_warn="0",
+        descr="APIC-SERVER-M2"
+    ),
+    ACIController(
+        controller_id="2",
+        name="ACI02",
+        status="in-service",
+        serial="FCH1935V1Z8",
+        model="APIC-SERVER-M2",
+        fault_crit="0",
+        fault_maj="0",
+        fault_minor="1",
+        fault_warn="1",
+        descr="APIC-SERVER-M2"
+    ),
+    ACIController(
+        controller_id="3",
+        name="ACI03",
+        status="in-service",
+        serial="FCH1935V1U7",
+        model="APIC-SERVER-M2",
+        fault_crit="-1",
+        fault_maj="0",
+        fault_minor="0",
+        fault_warn="0",
         descr="APIC-SERVER-M2"
     ),
 ]
@@ -121,13 +185,17 @@ ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
                     status="in-service",
                     serial="FCH1835V2FM",
                     model="APIC-SERVER-M1",
+                    fault_crit="0",
+                    fault_maj="0",
+                    fault_minor="0",
+                    fault_warn="0",
                     descr="APIC-SERVER-M1"
                 ),
             ],
             (
                 Result(
                     state=State.OK,
-                    summary='APIC1 is in-service, Model: APIC-SERVER-M1, Serial: FCH1835V2FM'
+                    summary='APIC1 is in-service, Unacknowledged Faults: 0, Model: APIC-SERVER-M1, Serial: FCH1835V2FM'
                 ),
             ),
         ),
@@ -140,13 +208,18 @@ ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
                     status="degraed",  # this might not be an official state
                     serial="FCH1835V2FM",
                     model="APIC-SERVER-M1",
+                    fault_crit="1",
+                    fault_maj="1",
+                    fault_minor="0",
+                    fault_warn="0",
                     descr="APIC-SERVER-M1"
                 ),
             ],
             (
                 Result(
                     state=State.CRIT,
-                    summary='APIC1 is degraed, Model: APIC-SERVER-M1, Serial: FCH1835V2FM'
+                    summary='APIC1 is degraed, Unacknowledged Faults: 2, Model: APIC-SERVER-M1, Serial: FCH1835V2FM',
+                    details='\n                    Unacknowledged APIC Faults:\n                    - Crit: 1\n                    - Maj: 1\n                    - Minor: 0\n                    - Warning: 0\n                '
                 ),
             ),
         ),
@@ -159,6 +232,10 @@ ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
                     status="in-service",
                     serial="FCH1835V2FM",
                     model="APIC-SERVER-M1",
+                    fault_crit="0",
+                    fault_maj="0",
+                    fault_minor="0",
+                    fault_warn="0",
                     descr="APIC-SERVER-M1"
                 ),
                 ACIController(
@@ -167,33 +244,82 @@ ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
                     status="in-service",
                     serial="FCH1935V1Z8",
                     model="APIC-SERVER-M2",
+                    fault_crit="0",
+                    fault_maj="0",
+                    fault_minor="0",
+                    fault_warn="0",
                     descr="APIC-SERVER-M2"
                 ),
             ],
             (
                 Result(
                     state=State.OK,
-                    summary='ACI01 is in-service, Model: APIC-SERVER-M2, Serial: FCH1935V1Z8'
+                    summary='ACI01 is in-service, Unacknowledged Faults: 0, Model: APIC-SERVER-M2, Serial: FCH1935V1Z8'
                 ),
             ),
         ),
         (
             "1",
-            ACI_GROUP_WITH_FAILED_HOST,
+            ACI_GROUP_WITH_CRIT_HOST,
             (
                 Result(
                     state=State.CRIT,
-                    summary='ACI01 is failied, Model: APIC-SERVER-M2, Serial: FCH1935V1Z3'
+                    summary='ACI01 is failied, Unacknowledged Faults: 1, Model: APIC-SERVER-M2, Serial: FCH1935V1Z3',
+                    details='\n                    Unacknowledged APIC Faults:\n                    - Crit: 0\n                    - Maj: 1\n                    - Minor: 0\n                    - Warning: 0\n                '
+                ),
+            ),
+        ),
+        (
+            "2",
+            ACI_GROUP_WITH_CRIT_HOST,
+            (
+                Result(
+                    state=State.CRIT,
+                    summary='ACI02 is in-service, Unacknowledged Faults: 2, Model: APIC-SERVER-M2, Serial: FCH1935V1Z8',
+                    details='\n                    Unacknowledged APIC Faults:\n                    - Crit: 1\n                    - Maj: 1\n                    - Minor: 0\n                    - Warning: 0\n                '
                 ),
             ),
         ),
         (
             "3",
-            ACI_GROUP_WITH_FAILED_HOST,
+            ACI_GROUP_WITH_CRIT_HOST,
             (
                 Result(
                     state=State.OK,
-                    summary='ACI03 is in-service, Model: APIC-SERVER-M2, Serial: FCH1935V1U7'
+                    summary='ACI03 is in-service, Unacknowledged Faults: 0, Model: APIC-SERVER-M2, Serial: FCH1935V1U7',
+                ),
+            ),
+        ),
+        (
+            "1",
+            ACI_GROUP_WITH_WARN_HOST,
+            (
+                Result(
+                    state=State.WARN,
+                    summary='ACI01 is in-service, Unacknowledged Faults: 1, Model: APIC-SERVER-M2, Serial: FCH1935V1Z3',
+                    details='\n                    Unacknowledged APIC Faults:\n                    - Crit: 0\n                    - Maj: 0\n                    - Minor: 1\n                    - Warning: 0\n                '
+                ),
+            ),
+        ),
+        (
+            "2",
+            ACI_GROUP_WITH_WARN_HOST,
+            (
+                Result(
+                    state=State.WARN,
+                    summary='ACI02 is in-service, Unacknowledged Faults: 2, Model: APIC-SERVER-M2, Serial: FCH1935V1Z8',
+                    details='\n                    Unacknowledged APIC Faults:\n                    - Crit: 0\n                    - Maj: 0\n                    - Minor: 1\n                    - Warning: 1\n                '
+                ),
+            ),
+        ),
+        (
+            "3",
+            ACI_GROUP_WITH_WARN_HOST,
+            (
+                Result(
+                    state=State.WARN,
+                    summary='ACI03 is in-service, Unacknowledged Faults: got negative number, Model: APIC-SERVER-M2, Serial: FCH1935V1U7',
+                    details='\n                    Unacknowledged APIC Faults:\n                    - Crit: -1\n                    - Maj: 0\n                    - Minor: 0\n                    - Warning: 0\n                \nThe difference between “faults - faultsAcknowledged” results in a negative number for one of the error categories crit/maj/minor/warn.\nThis means that there are probably "stale faults" on the APIC, which are output via the API but are not visible in the GUI.\nPlease investigate and correct the errors.'
                 ),
             ),
         ),

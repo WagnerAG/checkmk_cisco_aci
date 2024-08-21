@@ -17,7 +17,7 @@ Special Agent Datasource Programm to check Cisco ACI
 
 Authors:    Samuel Zehnder <zehnder@netcloud.ch>
             Roger Ellenberger <roger.ellenberger@wagner.ch>
-
+            Roland Wyss <roland.wyss@wagner.ch>
 """
 
 from collections import defaultdict
@@ -127,6 +127,31 @@ class Apic:
         result = self.get_imdata(endpoint=f'class/{aci_class}.json')
         return [item[aci_class]['attributes'] for item in result]
 
+@dataclass
+class FaultCounts:
+    """
+    Detailed fault counts per node
+    """
+    childAction: str
+    crit: str
+    critAcked: str
+    critAckedandDelegated: str
+    critDelegated: str
+    maj: str
+    majAcked: str
+    majAckedandDelegated: str
+    majDelegated: str
+    minor: str
+    minorAcked: str
+    minorAckedandDelegated: str
+    minorDelegated: str
+    rn: str
+    status: str
+    warn: str
+    warnAcked: str
+    warnAckedandDelegated: str
+    warnDelegated: str
+
 
 @dataclass
 class AciNode:
@@ -137,12 +162,18 @@ class AciNode:
     node_id: str
     health: str = "-1"
     model: str = "unknown"
+    fault_counts: FaultCounts = None
     descr: str = ""
 
     def build_node_output(self) -> Tuple:
         if self.role == 'controller':
+            fault_crit = str(int(self.fault_counts['crit']) - int(self.fault_counts['critAcked']))
+            fault_maj = str(int(self.fault_counts['maj']) - int(self.fault_counts['majAcked']))
+            fault_minor = str(int(self.fault_counts['minor']) - int(self.fault_counts['minorAcked']))
+            fault_warn = str(int(self.fault_counts['warn']) - int(self.fault_counts['warnAcked']))
+
             node_info = (self.role, self.node_id, self.name, self.state, self.serial,
-                         self.model, self.descr)
+                         self.model, fault_crit, fault_maj, fault_minor, fault_warn, self.descr)
         else:
             node_info = (self.role, self.node_id, self.name, self.state, self.health,
                          self.serial, self.model, self.descr)
@@ -447,7 +478,7 @@ def get_tenants(apic: Apic) -> List[AciTenant]:
 
 def get_nodes(apic: Apic) -> Dict:
     response = apic.session.get(apic.url + 'node/class/topSystem.json?query-target=self&rsp-subtree=children&'
-                                'rsp-subtree-class=eqptCh&rsp-subtree-include=health', verify=False)
+                                'rsp-subtree-class=eqptCh&rsp-subtree-include=health,fault-count', verify=False)
     response.raise_for_status()
     nodes = response.json()['imdata']
     nodelist = dict(spine=[], leaf=[], controller=[])
@@ -464,6 +495,8 @@ def get_nodes(apic: Apic) -> Dict:
         for child in node['topSystem']['children']:
             if 'healthInst' in child:
                 aci_node.health = child['healthInst']['attributes']['cur']
+            if 'faultCounts' in child:
+                aci_node.fault_counts = child['faultCounts']['attributes']
             if 'eqptCh' in child:
                 aci_node.descr = child['eqptCh']['attributes']['descr']
                 aci_node.model = child['eqptCh']['attributes']['model']

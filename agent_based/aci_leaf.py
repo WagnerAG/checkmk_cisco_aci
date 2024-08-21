@@ -20,7 +20,7 @@ Authors:    Samuel Zehnder <zehnder@netcloud.ch>
 
 """
 
-from .agent_based_api.v1 import register
+from cmk.base.plugins.agent_based.agent_based_api.v1 import register
 from .aci_node import (
     parse_aci_node,
     discover_aci_node,

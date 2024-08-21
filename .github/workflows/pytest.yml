@@ -8,7 +8,7 @@ jobs:
 
     runs-on: ubuntu-latest
     container:
-      image: checkmk/check-mk-raw:2.0.0p30
+      image: checkmk/check-mk-raw:2.2.0-latest
 
     env:
       OMD_ROOT: /omd/sites/cmk
@@ -23,8 +23,8 @@ jobs:
     - name: Setup links
       run: ./.devcontainer/symlink.sh
     - name: Install pytest
-      run: su -l -c "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt pip3 install -r $GITHUB_WORKSPACE/.devcontainer/requirements.txt" cmk
+      run: REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt /omd/sites/cmk/bin/python3 -m pip install --user -r $GITHUB_WORKSPACE/.devcontainer/requirements.txt
     - name: Update GITHUB_PATH
       run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
     - name: Run pytest
-      run: python3 -m pytest --cov agent_based
+      run: /omd/sites/cmk/bin/python3 -m pytest $GITHUB_WORKSPACE

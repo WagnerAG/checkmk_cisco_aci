@@ -23,11 +23,11 @@ from __future__ import annotations
 from typing import NamedTuple
 from enum import Enum
 
-from .agent_based_api.v1.type_defs import (
+from cmk.base.plugins.agent_based.agent_based_api.v1.type_defs import (
     CheckResult,
     DiscoveryResult,
 )
-from .agent_based_api.v1 import (
+from cmk.base.plugins.agent_based.agent_based_api.v1 import (
     register,
     Result,
     Service,
