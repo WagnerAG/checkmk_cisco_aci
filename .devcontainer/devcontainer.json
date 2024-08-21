@@ -14,16 +14,16 @@
 		"vscode": {
 			"extensions": [
 				"ms-python.python",
+                "ms-python.pylint",
 				"littlefoxteam.vscode-python-test-adapter",
 				"rioj7.command-variable",
 				"ms-azuretools.vscode-docker",
+				"github.vscode-github-actions",
 				"charliermarsh.ruff"
 			],
-			// set some specific settings
-			"settings": {
-				"terminal.integrated.defaultProfile.linux": "bash"
-			},
-			"python.defaultInterpreterPath": "/omd/sites/cmk/bin/python3"
+            // Bash as default shell.
+            "settings": {"terminal.integrated.defaultProfile.linux": "bash"},
+            "python.defaultInterpreterPath": "/omd/sites/cmk/bin/python3"
 		}
 	},
 	// Add the IDs of extensions you want installed when the container is created.
@@ -39,6 +39,5 @@
 		"OMD_SITE": "cmk",
 		"CMK_SITE_ID": "cmk",
 		"WORKSPACE": "${containerWorkspaceFolder}"
-	},
-	"forwardPorts": [5000]
+	}
 }
