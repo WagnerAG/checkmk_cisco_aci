@@ -1,7 +1,7 @@
 {
     'name': 'cisco_aci',
     'title': u'Special agent for Cisco ACI',
-    'version': '0.8.0',
+    'version': '0.9.0',
     'version.min_required': '2.0.0p1',
     'version.packaged': '2.2.0p31',
     'author': u'Roger Ellenberger',
