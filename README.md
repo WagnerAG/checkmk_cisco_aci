@@ -1,8 +1,8 @@
 # Checkmk extension for Cisco ACI
 
-![build](https://github.com/ellr/checkmk_cisco_aci/workflows/build/badge.svg)
-![flake8](https://github.com/ellr/checkmk_cisco_aci/workflows/Lint/badge.svg)
-![pytest](https://github.com/ellr/checkmk_cisco_aci/workflows/pytest/badge.svg)
+![build](https://github.com/WAGNERAG/checkmk_cisco_aci/workflows/build/badge.svg)
+![flake8](https://github.com/WAGNERAG/checkmk_cisco_aci/workflows/Lint/badge.svg)
+![pytest](https://github.com/WAGNERAG/checkmk_cisco_aci/workflows/pytest/badge.svg)
 
 ## Description
 
