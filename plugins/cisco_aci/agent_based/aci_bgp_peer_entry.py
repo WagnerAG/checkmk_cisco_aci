@@ -41,7 +41,9 @@ from .aci_general import convert_rate, to_int
 
 # by default we only alert on BGP connection drop
 DEFAULT_BGP_RATE_LEVELS: Dict = {
-    "level_bgp_drop": (1.0, 6.0),
+    'level_bgp_attempts': (1.0, 6.0),
+    'level_bgp_drop': (1.0, 6.0),
+    'level_bgp_est': (1.0, 6.0),
 }
 
 
@@ -151,7 +153,15 @@ def _check_rates(params: Dict, bgp_peer_entry: BgpPeerEntry) -> CheckResult:
     """execute check_levels for all types of ConnectionRates."""
     bgp_peer_entry.calculate_counters()
     for rate_type in ConnectionRates._fields:
-        yield from check_levels(getattr(bgp_peer_entry.rates, rate_type), levels_upper=params.get(f"level_bgp_{rate_type}"), metric_name=f"bgp_conn_{rate_type}", boundaries=(0.0, None), label=f"BGP connection {rate_type} value", render_func=con_rate, notice_only=True)
+        yield from check_levels(
+                getattr(bgp_peer_entry.rates, rate_type),
+                levels_upper=('fixed', params.get(f"level_bgp_{rate_type}")),
+                metric_name=f"bgp_conn_{rate_type}",
+                boundaries=(0.0, None),
+                label=f"BGP connection {rate_type} value",
+                render_func=con_rate,
+                notice_only=True,
+            )
 
 
 def check_aci_bgp_peer_entry(item: str, params: Dict, section: List[BgpPeerEntry]) -> CheckResult:
