@@ -22,7 +22,6 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 from __future__ import annotations
 from typing import Dict, NamedTuple
 
-
 from cmk .agent_based.v2 import (
     check_levels,
     CheckResult,
@@ -78,7 +77,7 @@ def check_aci_tenants(item: str, params: Dict, section: Dict[str, ACITenant]) ->
 
     yield from check_levels(
         tenant.health_score,
-        levels_lower=params.get("health_levels"),
+        levels_lower=("fixed", params.get("health_levels")),
         boundaries=(0, 100),
         metric_name="health",
         label="Health Score",
