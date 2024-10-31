@@ -82,11 +82,11 @@ class DomPowerStatValues(NamedTuple):
 
     @property
     def upper_levels(self) -> Tuple:
-        return (self.hi_warn, self.hi_alarm)
+        return ('fixed', (self.hi_warn, self.hi_alarm))
 
     @property
     def lower_levels(self) -> Tuple:
-        return (self.lo_warn, self.lo_alarm)
+        return ('fixed', (self.lo_warn, self.lo_alarm))
 
     @property
     def details(self) -> str:
@@ -159,7 +159,13 @@ def check_aci_dom_pwr_stats(item: str, section: List[DomPowerStat]) -> CheckResu
                 yield Result(state=s.state, notice=s.summary, details=s.details)
 
                 # Alerting works with dynamic warn/alert levels that are received from ACI
-                yield from check_levels(s.value, levels_upper=s.upper_levels, levels_lower=s.lower_levels, metric_name=f"dom_{s.type.value}_power", label=f"{s.type.name} value")
+                yield from check_levels(
+                        s.value,
+                        levels_upper=s.upper_levels,
+                        levels_lower=s.lower_levels,
+                        metric_name=f"dom_{s.type.value}_power",
+                        label=f"{s.type.name} value",
+                    )
             break
     else:
         yield Result(state=State.UNKNOWN, summary="Sorry - item not found")
