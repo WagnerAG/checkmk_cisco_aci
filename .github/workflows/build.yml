@@ -26,14 +26,17 @@ jobs:
     steps:
       - name: Initialize Checkmk Site
         run: /docker-entrypoint.sh /bin/true
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+
       - name: Setup links
         run: .devcontainer/symlink.sh
       - name: Update GITHUB_PATH
         run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+
       - name: Build Extension
         run: .devcontainer/build.sh
         id: cmkpkg
+
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
