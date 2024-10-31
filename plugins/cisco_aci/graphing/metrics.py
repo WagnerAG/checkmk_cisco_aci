@@ -19,66 +19,68 @@ Graph definitions for Cisco ACI
 from cmk.graphing.v1 import metrics, Title
 
 COUNT = metrics.Unit(metrics.DecimalNotation(""))
+DBM = metrics.Unit(metrics.DecimalNotation("dbm"))
+
 
 metric_cisco_aci_health = metrics.Metric(
     name="health",
     title=Title("Health score"),
-    unit=metrics.Unit(COUNT),
+    unit=COUNT,
     color=metrics.Color.GREEN,
 )
 
 metric_cisco_aci_dom_rx_power = metrics.Metric(
     name="dom_rx_power",
     title=Title("DOM RX Power"),
-    unit=metrics.Unit(metrics.DecimalNotation("dbm")),
+    unit=DBM,
     color=metrics.Color.DARK_YELLOW,
 )
 
 metric_cisco_aci_dom_tx_power = metrics.Metric(
     name="dom_tx_power",
     title=Title("DOM TX Power"),
-    unit=metrics.Unit(metrics.DecimalNotation("dbm")),
+    unit=DBM,
     color=metrics.Color.LIGHT_YELLOW,
 )
 
 metric_cisco_aci_fcs_errors = metrics.Metric(
     name="fcs_errors",
     title=Title("FCS errors"),
-    unit=metrics.Unit(COUNT),
+    unit=COUNT,
     color=metrics.Color.RED,
 )
 
 metric_cisco_aci_crc_errors = metrics.Metric(
     name="crc_errors",
     title=Title("CRC errors"),
-    unit=metrics.Unit(COUNT),
+    unit=COUNT,
     color=metrics.Color.DARK_RED,
 )
 
 metric_cisco_aci_stomped_crc_errors = metrics.Metric(
     name="stomped_crc_errors",
     title=Title("Stomped CRC errors"),
-    unit=metrics.Unit(COUNT),
+    unit=COUNT,
     color=metrics.Color.LIGHT_RED,
 )
 
 metric_cisco_aci_bgp_conn_attempts = metrics.Metric(
     name="bgp_conn_attempts",
     title=Title("BGP connection attempts"),
-    unit=metrics.Unit(COUNT),
+    unit=COUNT,
     color=metrics.Color.PURPLE,
 )
 
 metric_cisco_aci_bgp_conn_drop = metrics.Metric(
     name="bgp_conn_drop",
     title=Title("BGP connection drops"),
-    unit=metrics.Unit(COUNT),
+    unit=COUNT,
     color=metrics.Color.DARK_BLUE,
 )
 
 metric_cisco_aci_bgp_conn_est = metrics.Metric(
     name="bgp_conn_est",
     title=Title("BGP connection establishments"),
-    unit=metrics.Unit(COUNT),
+    unit=COUNT,
     color=metrics.Color.BLUE,
 )
