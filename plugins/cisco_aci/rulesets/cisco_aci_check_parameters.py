@@ -21,12 +21,7 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 
 from cmk.rulesets.v1 import Help, Title
 from cmk.rulesets.v1.form_specs import (
-    BooleanChoice,
     Dictionary,
-    MultipleChoiceElement,
-    MultipleChoice,
-    Password,
-    String,
     Float,
     DictElement,
     InputHint,

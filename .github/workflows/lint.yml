@@ -6,7 +6,7 @@ on:
       - '**.py'
 
 jobs:
-  flake8_py3:
+  ruff_lint:
 
     runs-on: ubuntu-latest
 
