@@ -23,7 +23,6 @@ Authors:    Samuel Zehnder <zehnder@netcloud.ch>
 from __future__ import annotations
 from typing import Dict, NamedTuple
 
-
 from cmk.agent_based.v2 import (
     AgentSection,
     CheckPlugin,
@@ -35,9 +34,10 @@ from cmk.agent_based.v2 import (
     Service,
     State,
 )
+from .aci_general import HealthLevels
 
 
-DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": ("fixed", (95, 85))}
+DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": {'warn': 95, 'crit': 85}}
 
 
 class ACIHealthValues(NamedTuple):
@@ -71,9 +71,11 @@ def discover_aci_health(section: ACIHealthValues) -> DiscoveryResult:
 
 
 def check_aci_health(params: Dict, section: ACIHealthValues) -> CheckResult:
+    levels = HealthLevels.model_validate(params)
+
     yield from check_levels(
         section.health,
-        levels_lower=params.get("health_levels"),
+        levels_lower=levels.health_levels.get_cmk_levels(),
         boundaries=(0, 100),
         metric_name="health",
         label="Fabric Health Score",

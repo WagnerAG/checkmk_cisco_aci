@@ -22,9 +22,10 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 from cmk.rulesets.v1 import Help, Title
 from cmk.rulesets.v1.form_specs import (
     Dictionary,
+    Integer,
     Float,
     DictElement,
-    InputHint,
+    DefaultValue,
 )
 from cmk.rulesets.v1.rule_specs import CheckParameters, Topic, HostAndItemCondition
 
@@ -44,14 +45,14 @@ def _form_spec_aci_l1_phys_if_levels():
                             required=True,
                             parameter_form=Float(
                                 title=Title("Warning at"),
-                                prefill=InputHint(0.01),
+                                prefill=DefaultValue(0.01),
                             ),
                         ),
                         "crit": DictElement(
                             required=True,
                             parameter_form=Float(
                                 title=Title("Critical at"),
-                                prefill=InputHint(1.0),
+                                prefill=DefaultValue(1.0),
                             ),
                         ),
                     },
@@ -67,14 +68,14 @@ def _form_spec_aci_l1_phys_if_levels():
                             required=True,
                             parameter_form=Float(
                                 title=Title("Warning at"),
-                                prefill=InputHint(1.0),
+                                prefill=DefaultValue(1.0),
                             ),
                         ),
                         "crit": DictElement(
                             required=True,
                             parameter_form=Float(
                                 title=Title("Critical at"),
-                                prefill=InputHint(12.0),
+                                prefill=DefaultValue(12.0),
                             ),
                         ),
                     },
@@ -90,14 +91,14 @@ def _form_spec_aci_l1_phys_if_levels():
                             required=True,
                             parameter_form=Float(
                                 title=Title("Warning at"),
-                                prefill=InputHint(1.0),
+                                prefill=DefaultValue(1.0),
                             ),
                         ),
                         "crit": DictElement(
                             required=True,
                             parameter_form=Float(
                                 title=Title("Critical at"),
-                                prefill=InputHint(12.0),
+                                prefill=DefaultValue(12.0),
                             ),
                         ),
                     },
@@ -116,231 +117,157 @@ rule_spec_aci_l1_phys_if_levels = CheckParameters(
 )
 
 
-# def _parameter_valuespec_aci_health_levels():
-#     return Dictionary(
-#         help=_(
-#             'To obtain the data required for this check, please configure'
-#             ' the datasource program "Cisco ACI".'
-#         ),
-#         elements=[
-#             (
-#                 'health_levels',
-#                 Tuple(
-#                     title=_("Fabric Health Levels"),
-#                     help=_(
-#                         "An alert will be raised if the fabric health is lower than "
-#                         "the configured level."
-#                     ),
-#                     elements=[
-#                         Integer(
-#                             title=_("Warning at"),
-#                             minvalue=0,
-#                             maxvalue=100,
-#                             default_value=95,
-#                         ),
-#                         Integer(
-#                             title=_("Critical at"),
-#                             minvalue=0,
-#                             maxvalue=100,
-#                             default_value=85,
-#                         ),
-#                     ],
-#                 ),
-#             ),
-#         ],
-#     )
+def _form_spec_aci_health_levels():
+    return Dictionary(
+        title=Title("Configure Cisco ACI health check parameters"),
+        help_text=Help(
+            'To obtain the data required for this check, please configure'
+            ' the datasource program "Cisco ACI".'
+        ),
+        elements={
+            'health_levels': DictElement(
+                required=False,
+                parameter_form=Dictionary(
+                    title=Title("Tenant Health Levels"),
+                    help_text=Help(
+                        "An alert will be raised if the tenant health score is lower than "
+                        "the configured level."
+                    ),
+                    elements={
+                        "warn": DictElement(
+                            required=True,
+                            parameter_form=Integer(
+                                title=Title("Warning at"),
+                                prefill=DefaultValue(95),
+                            ),
+                        ),
+                        "crit": DictElement(
+                            required=True,
+                            parameter_form=Integer(
+                                title=Title("Critical at"),
+                                prefill=DefaultValue(85),
+                            ),
+                        ),
+                    },
+                ),
+            ),
+        },
+    )
 
 
-# rulespec_registry.register(
-#     CheckParameterRulespecWithoutItem(
-#         check_group_name="aci_health_levels",
-#         group=RulespecGroupCheckParametersNetworking,
-#         match_type="dict",
-#         parameter_valuespec=_parameter_valuespec_aci_health_levels,
-#         title=lambda: _("Cisco ACI Fabric Health Levels"),
-#     )
-# )
+rule_spec_aci_health_levels = CheckParameters(
+    title=Title("Cisco ACI Health Levels"),
+    name="aci_health_levels",
+    topic=Topic.NETWORKING,
+    condition=HostAndItemCondition(Title("Cisco ACI health parameters")),
+    parameter_form=_form_spec_aci_health_levels,
+)
 
 
-# def _parameter_valuespec_aci_health_levels():
-#     return Dictionary(
-#         help=_(
-#             'To obtain the data required for this check, please configure'
-#             ' the datasource program "Cisco ACI".'
-#         ),
-#         elements=[
-#             (
-#                 'health_levels',
-#                 Tuple(
-#                     title=_("Tenant Health Levels"),
-#                     help=_(
-#                         "An alert will be raised if the tenant health score is lower than "
-#                         "the configured level."
-#                     ),
-#                     elements=[
-#                         Integer(
-#                             title=_("Warning at"),
-#                             minvalue=0,
-#                             maxvalue=100,
-#                             default_value=95,
-#                         ),
-#                         Integer(
-#                             title=_("Critical at"),
-#                             minvalue=0,
-#                             maxvalue=100,
-#                             default_value=85,
-#                         ),
-#                     ],
-#                 ),
-#             ),
-#         ],
-#     )
+rule_spec_aci_tenant_health_levels = CheckParameters(
+    title=Title("Cisco ACI Tenant Health Levels"),
+    name="aci_tenant_health_levels",
+    topic=Topic.NETWORKING,
+    condition=HostAndItemCondition(Title("Cisco ACI tenant health parameters")),
+    parameter_form=_form_spec_aci_health_levels,
+)
 
 
-# rulespec_registry.register(
-#     CheckParameterRulespecWithItem(
-#         check_group_name="aci_tenant_health_levels",
-#         group=RulespecGroupCheckParametersNetworking,
-#         item_spec=lambda: TextInput(title=_("Cisco ACI Tenant Health Levels")),
-#         match_type="dict",
-#         parameter_valuespec=_parameter_valuespec_aci_health_levels,
-#         title=lambda: _("Cisco ACI Tenant Health Levels"),
-#     )
-# )
+def _form_spec_aci_bgp_peer_entry_levels():
+    return Dictionary(
+        title=Title('Configure Cisco ACI BGP peer check parameters'),
+        help_text=Help(
+            'To obtain the data required for this check, please configure'
+            ' the datasource program "Cisco ACI". By default we only alert'
+            ' on BGP connection drops.'
+        ),
+        elements={
+            'level_bgp_attempts': DictElement(
+                required=False,
+                parameter_form=Dictionary(
+                    title=Title("BGP connection attempts per minute"),
+                    help_text=Help(
+                        "An alert will be raised if there are more than the given "
+                        "amount of BGP connection attempts per minute."
+                    ),
+                    elements={
+                        "warn": DictElement(
+                            required=True,
+                            parameter_form=Float(
+                                title=Title("Warning at"),
+                                prefill=DefaultValue(1.0),
+                            ),
+                        ),
+                        "crit": DictElement(
+                            required=True,
+                            parameter_form=Float(
+                                title=Title("Critical at"),
+                                prefill=DefaultValue(6.0),
+                            ),
+                        ),
+                    },
+                ),
+            ),
+            'level_bgp_drop': DictElement(
+                required=False,
+                parameter_form=Dictionary(
+                    title=Title("BGP connection drops per minute"),
+                    help_text=Help(
+                        "An alert will be raised if there are more than the given "
+                        "amount of BGP connection drops per minute."
+                    ),
+                    elements={
+                        "warn": DictElement(
+                            required=True,
+                            parameter_form=Float(
+                                title=Title("Warning at"),
+                                prefill=DefaultValue(1.0),
+                            ),
+                        ),
+                        "crit": DictElement(
+                            required=True,
+                            parameter_form=Float(
+                                title=Title("Critical at"),
+                                prefill=DefaultValue(6.0),
+                            ),
+                        ),
+                    },
+                ),
+            ),
+            'level_bgp_est': DictElement(
+                required=False,
+                parameter_form=Dictionary(
+                    title=Title("BGP connection establishments per minute"),
+                    help_text=Help(
+                        "An alert will be raised if there are more than the given "
+                        "amount of BGP connection establishments per minute."
+                    ),
+                    elements={
+                        "warn": DictElement(
+                            required=True,
+                            parameter_form=Float(
+                                title=Title("Warning at"),
+                                prefill=DefaultValue(1.0),
+                            ),
+                        ),
+                        "crit": DictElement(
+                            required=True,
+                            parameter_form=Float(
+                                title=Title("Critical at"),
+                                prefill=DefaultValue(6.0),
+                            ),
+                        ),
+                    },
+                ),
+            ),
+        },
+    )
 
 
-# def _parameter_valuespec_aci_node_levels():
-#     return Dictionary(
-#         help=_(
-#             'To obtain the data required for this check, please configure'
-#             ' the datasource program "Cisco ACI".'
-#         ),
-#         elements=[
-#             (
-#                 'health_levels',
-#                 Tuple(
-#                     title=_("Node Health Levels"),
-#                     help=_(
-#                         "An alert will be raised if the node health is lower than "
-#                         "the configured level."
-#                     ),
-#                     elements=[
-#                         Integer(
-#                             title=_("Warning at"),
-#                             minvalue=0,
-#                             maxvalue=100,
-#                             default_value=95,
-#                         ),
-#                         Integer(
-#                             title=_("Critical at"),
-#                             minvalue=0,
-#                             maxvalue=100,
-#                             default_value=85,
-#                         ),
-#                     ],
-#                 ),
-#             ),
-#         ],
-#     )
-
-
-# rulespec_registry.register(
-#     CheckParameterRulespecWithItem(
-#         check_group_name="aci_node_levels",
-#         group=RulespecGroupCheckParametersNetworking,
-#         item_spec=lambda: TextInput(title=_("Cisco ACI Node Health Levels")),
-#         match_type="dict",
-#         parameter_valuespec=_parameter_valuespec_aci_node_levels,
-#         title=lambda: _("Cisco ACI Node Health Levels"),
-#     )
-# )
-
-
-# def _parameter_valuespec_aci_bgp_peer_entry_levels():
-#     return Dictionary(
-#         help=_(
-#             'To obtain the data required for this check, please configure'
-#             ' the datasource program "Cisco ACI". By default we only alert'
-#             ' on BGP connection drops.'
-#         ),
-#         elements=[
-#             (
-#                 'level_bgp_attempts',
-#                 Tuple(
-#                     title=_("BGP connection attempts per minute"),
-#                     help=_(
-#                         "An alert will be raised if there are more than the given "
-#                         "amount of BGP connection attempts per minute."
-#                     ),
-#                     elements=[
-#                         Float(
-#                             title=_("Warning at"),
-#                             minvalue=0.0,
-#                             default_value=1.0,
-#                         ),
-#                         Float(
-#                             title=_("Critical at"),
-#                             minvalue=0.0,
-#                             default_value=6.0,
-#                         ),
-#                     ],
-#                 ),
-#             ),
-#             (
-#                 'level_bgp_drop',
-#                 Tuple(
-#                     title=_("BGP connection drops per minute"),
-#                     help=_(
-#                         "An alert will be raised if there are more than the given "
-#                         "amount of BGP connection drops per minute."
-#                     ),
-#                     elements=[
-#                         Float(
-#                             title=_("Warning at"),
-#                             minvalue=0.0,
-#                             default_value=1.0,
-#                         ),
-#                         Float(
-#                             title=_("Critical at"),
-#                             minvalue=0.0,
-#                             default_value=6.0,
-#                         ),
-#                     ],
-#                 ),
-#             ),
-#             (
-#                 'level_bgp_est',
-#                 Tuple(
-#                     title=_("BGP connection establishments per minute"),
-#                     help=_(
-#                         "An alert will be raised if there are more than the given "
-#                         "amount of BGP connection establishments per minute."
-#                     ),
-#                     elements=[
-#                         Float(
-#                             title=_("Warning at"),
-#                             minvalue=0.0,
-#                             default_value=1.0,
-#                         ),
-#                         Float(
-#                             title=_("Critical at"),
-#                             minvalue=0.0,
-#                             default_value=6.0,
-#                         ),
-#                     ],
-#                 ),
-#             ),
-#         ],
-#     )
-
-
-# rulespec_registry.register(
-#     CheckParameterRulespecWithItem(
-#         check_group_name="aci_bgp_peer_entry_levels",
-#         group=RulespecGroupCheckParametersNetworking,
-#         item_spec=lambda: TextInput(title=_("Cisco ACI BGP peer entry settings")),
-#         match_type="dict",
-#         parameter_valuespec=_parameter_valuespec_aci_bgp_peer_entry_levels,
-#         title=lambda: _("Cisco ACI BGP peer entry settings"),
-#     )
-# )
+rule_spec_aci_bgp_peer_entry_levels = CheckParameters(
+    title=Title("Cisco ACI BGP peer entry settings"),
+    name="aci_bgp_peer_entry_levels",
+    topic=Topic.NETWORKING,
+    condition=HostAndItemCondition(Title("Cisco ACI BGP peer entry settings")),
+    parameter_form=_form_spec_aci_bgp_peer_entry_levels,
+)

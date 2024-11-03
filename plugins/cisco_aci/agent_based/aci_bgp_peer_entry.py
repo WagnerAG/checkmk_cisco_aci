@@ -22,6 +22,7 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, NamedTuple, Optional
+from pydantic import BaseModel, Field
 import time
 
 from cmk.agent_based.v2 import (
@@ -36,16 +37,28 @@ from cmk.agent_based.v2 import (
     get_rate,
     get_value_store,
 )
-from .aci_general import convert_rate, to_int
+from .aci_general import convert_rate, to_int, ErrorLevels
 
 
 # by default we only alert on BGP connection drop
 DEFAULT_BGP_RATE_LEVELS: Dict = {
-    'level_bgp_attempts': (1.0, 6.0),
-    'level_bgp_drop': (1.0, 6.0),
-    'level_bgp_est': (1.0, 6.0),
+    'level_bgp_attempts': {'warn': 1.0, 'crit': 6.0},
+    'level_bgp_drop': {'warn': 1.0, 'crit': 6.0},
+    'level_bgp_est': {'warn': 1.0, 'crit': 6.0},
 }
 
+
+class BgpRateLevels(BaseModel):
+    bgp_attempts: ErrorLevels = Field(alias='level_bgp_attempts', default_factory=ErrorLevels)
+    bgp_drop: ErrorLevels = Field(alias='level_bgp_drop', default_factory=ErrorLevels)
+    bgp_est: ErrorLevels = Field(alias='level_bgp_est', default_factory=ErrorLevels)
+
+    def get_levels(self, attr: str):
+        if attr in self.model_fields.keys():
+            level: ErrorLevels = getattr(self, attr)
+            return level.get_cmk_levels()
+        else:
+            raise ValueError('attr is not defined for this model')
 
 def con_rate(value: float) -> str:
     return f"{value:0.2f}/min"
@@ -149,13 +162,13 @@ def discover_aci_bgp_peer_entry(section: List[BgpPeerEntry]) -> DiscoveryResult:
         yield Service(item=bgp_peer_entry.addr)
 
 
-def _check_rates(params: Dict, bgp_peer_entry: BgpPeerEntry) -> CheckResult:
+def _check_rates(params: BgpRateLevels, bgp_peer_entry: BgpPeerEntry) -> CheckResult:
     """execute check_levels for all types of ConnectionRates."""
     bgp_peer_entry.calculate_counters()
     for rate_type in ConnectionRates._fields:
         yield from check_levels(
                 getattr(bgp_peer_entry.rates, rate_type),
-                levels_upper=('fixed', params.get(f"level_bgp_{rate_type}")),
+                levels_upper=params.get_levels(f"bgp_{rate_type}"),
                 metric_name=f"bgp_conn_{rate_type}",
                 boundaries=(0.0, None),
                 label=f"BGP connection {rate_type} value",
@@ -165,11 +178,13 @@ def _check_rates(params: Dict, bgp_peer_entry: BgpPeerEntry) -> CheckResult:
 
 
 def check_aci_bgp_peer_entry(item: str, params: Dict, section: List[BgpPeerEntry]) -> CheckResult:
+    levels = BgpRateLevels.model_validate(params)
+
     for entry in section:
         if item == entry.addr:
             yield Result(state=entry.cmk_state, summary=f"state: {entry.oper_st}")
             yield Result(state=State.OK, summary=entry.summary, details=entry.details)
-            yield from _check_rates(params, entry)
+            yield from _check_rates(levels, entry)
             break
     else:
         yield Result(state=State.UNKNOWN, summary="Sorry - item not found")

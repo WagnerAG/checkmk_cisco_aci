@@ -24,7 +24,7 @@ from __future__ import annotations
 from typing import List, Tuple, Dict, Optional
 from contextlib import suppress
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from cmk.agent_based.v2 import ServiceLabel
 
@@ -47,11 +47,21 @@ class ConversionFactor(Enum):
 
 
 class ErrorLevels(BaseModel):
-    warn: float | None
-    crit: float | None
+    warn: int | float | None = None
+    crit: int | float | None = None
 
-    def values(self) -> tuple[float | None, float | None]:
+    def values(self) -> tuple[int | float, int | float]:
         return (self.warn, self.crit)
+
+    def get_cmk_levels(self)  -> tuple[str, None] | tuple[str, tuple[int | float, int | float]]:
+        if self.warn is None or self.crit is None:
+            return ('no_levels', None)
+        else:
+            return ("fixed", (self.warn, self.crit))
+
+
+class HealthLevels(BaseModel):
+    health_levels: ErrorLevels = Field(default_factory=ErrorLevels)
 
 
 def convert_rate(value: float, factor: ConversionFactor = ConversionFactor.MINUTES) -> float:

@@ -21,6 +21,7 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 
 from __future__ import annotations
 from typing import Dict, NamedTuple
+from pydantic import BaseModel
 
 from cmk .agent_based.v2 import (
     check_levels,
@@ -32,9 +33,10 @@ from cmk .agent_based.v2 import (
     Service,
     State,
 )
+from .aci_general import HealthLevels
 
 
-DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": (95, 85)}
+DEFAULT_HEALTH_LEVELS: Dict = {"health_levels": {'warn': 95, 'crit': 85}}
 
 
 class ACITenant(NamedTuple):
@@ -70,6 +72,8 @@ def discover_aci_tenants(section: Dict[str, ACITenant]) -> DiscoveryResult:
 
 
 def check_aci_tenants(item: str, params: Dict, section: Dict[str, ACITenant]) -> CheckResult:
+    levels = HealthLevels.model_validate(params)
+
     tenant = section.get(item)
     if not tenant:
         yield Result(state=State.UNKNOWN, summary="Sorry - item not found")
@@ -77,7 +81,7 @@ def check_aci_tenants(item: str, params: Dict, section: Dict[str, ACITenant]) ->
 
     yield from check_levels(
         tenant.health_score,
-        levels_lower=("fixed", params.get("health_levels")),
+        levels_lower=levels.health_levels.get_cmk_levels(),
         boundaries=(0, 100),
         metric_name="health",
         label="Health Score",
