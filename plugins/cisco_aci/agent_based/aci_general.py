@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import List, Tuple, Dict, Optional
 from contextlib import suppress
 from enum import Enum
+from pydantic import BaseModel
 
 from cmk.agent_based.v2 import ServiceLabel
 
@@ -43,6 +44,14 @@ DEFAULT_DISCOVERY_PARAMS: Dict = {
 class ConversionFactor(Enum):
     MINUTES: int = 60
     HOURS: int = 3600
+
+
+class ErrorLevels(BaseModel):
+    warn: float | None
+    crit: float | None
+
+    def values(self) -> tuple[float | None, float | None]:
+        return (self.warn, self.crit)
 
 
 def convert_rate(value: float, factor: ConversionFactor = ConversionFactor.MINUTES) -> float:

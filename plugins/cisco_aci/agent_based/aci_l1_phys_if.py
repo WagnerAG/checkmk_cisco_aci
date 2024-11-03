@@ -24,6 +24,7 @@ from dataclasses import dataclass
 
 import time
 from typing import Dict, NamedTuple, Optional, Tuple, Sequence, List
+from pydantic import BaseModel, Field
 
 from cmk.agent_based.v2 import (
     Result,
@@ -44,15 +45,22 @@ from .aci_general import (
     get_orig_interface_id,
     get_max_if_padding,
     DEFAULT_DISCOVERY_PARAMS,
+    ErrorLevels,
 )
+
+
+class L1ErrorLevels(BaseModel):
+    fcs_errors: ErrorLevels = Field(alias='level_fcs_errors')
+    crc_errors: ErrorLevels = Field(alias='level_crc_errors')
+    stomped_crc_errors: ErrorLevels = Field(alias='level_stomped_crc_errors')
 
 
 ROUND_TO_DIGITS: int = 2
 
 DEFAULT_ERROR_LEVELS: Dict = {
-    "level_fcs_errors": (0.01, 1.0),
-    "level_crc_errors": (1.0, 12.0),
-    "level_stomped_crc_errors": (1.0, 12.0),
+    "level_fcs_errors": {'warn': 0.01, 'crit': 1.0},
+    "level_crc_errors": {'warn': 1.0, 'crit': 12.0},
+    "level_stomped_crc_errors": {'warn': 1.0, 'crit': 12.0},
 }
 
 OPERATIONAL_PORT_STATE = {
@@ -75,26 +83,22 @@ class ErrorRates(NamedTuple):
     stomped_crc: Optional[float] = None
 
     @staticmethod
-    def _get_levels(params: Dict, state: State) -> Tuple:
-        fcs_warn, fcs_crit = params.get("level_fcs_errors")
-        crc_warn, crc_crit = params.get("level_crc_errors")
-        stomped_crc_warn, stomped_crc_crit = params.get("level_stomped_crc_errors")
-
+    def _get_levels(params: L1ErrorLevels, state: State) -> Tuple:
         if state == State.CRIT:
-            return fcs_crit, crc_crit, stomped_crc_crit
+            return params.fcs_errors.crit, params.crc_errors.crit, params.stomped_crc_errors.crit
         elif state == State.WARN:
-            return fcs_warn, crc_warn, stomped_crc_warn
+            return params.fcs_errors.warn, params.crc_errors.warn, params.stomped_crc_errors.warn
         else:
             raise ValueError(f"No valid state provided. Allowed are State.CRIT and State.WARN. Got state={state}")
 
-    def _check_state(self, params, state: State) -> bool:
+    def _check_state(self, params: L1ErrorLevels, state: State) -> bool:
         fcs_level, crc_level, stomped_crc_level = self._get_levels(params, state)
         return self.fcs >= fcs_level or self.crc >= crc_level or self.stomped_crc >= stomped_crc_level
 
-    def is_crit(self, params) -> bool:
+    def is_crit(self, params: L1ErrorLevels) -> bool:
         return self._check_state(params, state=State.CRIT)
 
-    def is_warn(self, params) -> bool:
+    def is_warn(self, params: L1ErrorLevels) -> bool:
         return self._check_state(params, state=State.WARN)
 
 
@@ -138,7 +142,7 @@ class AciL1Interface:
 
         return AciL1Interface(*line)
 
-    def get_state(self, params: Dict) -> State:
+    def get_state(self, params: ErrorRates) -> State:
         self.calculate_error_counters()
 
         if self.rates.is_crit(params):
@@ -231,15 +235,16 @@ def discover_aci_l1_phys_if(params, section: Dict[str, AciL1Interface]) -> Disco
 
 
 def check_aci_l1_phys_if(item: str, params: Dict, section: Dict[str, AciL1Interface]) -> CheckResult:
+    levels = L1ErrorLevels.model_validate(params)
     interface: AciL1Interface = section.get(get_orig_interface_id(item))
 
     if not interface:
         yield Result(state=State.UNKNOWN, summary="Sorry - item not found")
     else:
-        yield Result(state=interface.get_state(params), summary=interface.summary, details=interface.details)
-        yield Metric("fcs_errors", round(interface.rates.fcs, ROUND_TO_DIGITS), levels=params.get("level_fcs_errors"))
-        yield Metric("crc_errors", round(interface.rates.crc, ROUND_TO_DIGITS), levels=params.get("level_crc_errors"))
-        yield Metric("stomped_crc_errors", round(interface.rates.stomped_crc, ROUND_TO_DIGITS), levels=params.get("level_stomped_crc_errors"))
+        yield Result(state=interface.get_state(levels), summary=interface.summary, details=interface.details)
+        yield Metric("fcs_errors", round(interface.rates.fcs, ROUND_TO_DIGITS), levels=levels.fcs_errors.values())
+        yield Metric("crc_errors", round(interface.rates.crc, ROUND_TO_DIGITS), levels=levels.crc_errors.values())
+        yield Metric("stomped_crc_errors", round(interface.rates.stomped_crc, ROUND_TO_DIGITS), levels=levels.stomped_crc_errors.values())
 
 
 agent_section_aci_l1_phys_if = AgentSection(
