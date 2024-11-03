@@ -28,9 +28,9 @@ from plugins.cisco_aci.agent_based.aci_bgp_peer_entry import (
 
 
 DEFAULT_BGP_RATE_LEVELS: Dict = {
-    'level_bgp_attempts': (1.0, 6.0),
-    'level_bgp_drop': (1.0, 6.0),
-    'level_bgp_est': (1.0, 6.0),
+    'level_bgp_attempts': {'warn': 1.0, 'crit': 6.0},
+    'level_bgp_drop': {'warn': 1.0, 'crit': 6.0},
+    'level_bgp_est': {'warn': 1.0, 'crit': 6.0},
 }
 
 
