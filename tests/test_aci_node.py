@@ -17,7 +17,7 @@ from typing import Tuple, List
 import pytest
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Metric
-from cmk.base.plugins.agent_based.aci_node import (
+from plugins.cisco_aci.agent_based.aci_node import (
     parse_aci_node,
     check_aci_node,
     ACINode,

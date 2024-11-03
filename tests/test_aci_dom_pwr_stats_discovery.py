@@ -17,7 +17,7 @@ from typing import Tuple, List, Dict
 import pytest
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import Service, ServiceLabel
-from cmk.base.plugins.agent_based.aci_dom_pwr_stats import (
+from plugins.cisco_aci.agent_based.aci_dom_pwr_stats import (
     discover_aci_dom_pwr_stats,
     DomPowerStat,
     DomPowerStatValues,

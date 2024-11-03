@@ -17,7 +17,7 @@ from typing import Tuple, List, Dict
 import pytest
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Metric
-from cmk.base.plugins.agent_based.aci_tenants import (
+from plugins.cisco_aci.agent_based.aci_tenants import (
     parse_aci_tenants,
     check_aci_tenants,
     ACITenant,

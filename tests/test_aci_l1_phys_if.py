@@ -20,16 +20,17 @@ import pytest
 from freezegun import freeze_time
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Metric
-from cmk.base.plugins.agent_based.aci_l1_phys_if import (
+
+from plugins.cisco_aci.agent_based.aci_l1_phys_if import (
     parse_aci_l1_phys_if,
     check_aci_l1_phys_if,
     AciL1Interface,
     DEFAULT_ERROR_LEVELS,
 )
 
-FCS_LEVELS = DEFAULT_ERROR_LEVELS.get('level_fcs_errors')
-CRC_LEVELS = DEFAULT_ERROR_LEVELS.get('level_crc_errors')
-STOMPED_CRC_LEVELS = DEFAULT_ERROR_LEVELS.get('level_stomped_crc_errors')
+FCS_LEVELS = (0.01, 1.0)
+CRC_LEVELS = (1.0, 12.0)
+STOMPED_CRC_LEVELS = (1.0, 12.0)
 
 
 L1_INTERFACES: List[AciL1Interface] = {
@@ -188,7 +189,7 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
     ],
 )
 def test_check_aci_l1_phys_if(item: str, section: Dict[str, AciL1Interface], expected_check_result: Tuple) -> None:
-    with patch('cmk.base.plugins.agent_based.aci_l1_phys_if.get_value_store') as mock_get:
+    with patch('plugins.cisco_aci.agent_based.aci_l1_phys_if.get_value_store') as mock_get:
         if item:
             timestamp = int((datetime.now() - timedelta(minutes=2)).timestamp())
             dn = section.get('eth1/3' if item == 'eth1/003' else item).dn

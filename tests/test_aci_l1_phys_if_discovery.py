@@ -17,12 +17,12 @@ from typing import Tuple, List, Dict
 import pytest
 
 from cmk.base.plugins.agent_based.agent_based_api.v1 import Service, ServiceLabel
-from cmk.base.plugins.agent_based.aci_l1_phys_if import (
+from plugins.cisco_aci.agent_based.aci_l1_phys_if import (
     DEFAULT_DISCOVERY_PARAMS,
     discover_aci_l1_phys_if,
     AciL1Interface,
 )
-from cmk.base.plugins.agent_based.aci_general import pad_interface_id, format_interface_id, get_orig_interface_id
+from plugins.cisco_aci.agent_based.aci_general import pad_interface_id, format_interface_id, get_orig_interface_id
 
 
 L1_INTERFACES: List[AciL1Interface] = {
