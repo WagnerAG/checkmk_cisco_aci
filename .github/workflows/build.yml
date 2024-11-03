@@ -32,7 +32,7 @@ jobs:
           echo "CMKPKG_NAME=$NAME" >> "$GITHUB_ENV"
           echo "CMKPKG_VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Setup links
-        run: .devcontainer/symlink.sh
+        run: .devcontainer/setpwd.sh
       - name: Build Extension
         run: |
           chown -R cmk:cmk $GITHUB_WORKSPACE
