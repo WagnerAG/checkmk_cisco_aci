@@ -21,7 +21,6 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 
 from __future__ import annotations
 from typing import Dict, NamedTuple
-from pydantic import BaseModel
 
 from cmk .agent_based.v2 import (
     check_levels,
