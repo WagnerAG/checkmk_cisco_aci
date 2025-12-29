@@ -1,6 +1,6 @@
 title: ACI spine
 agents: special
-catalog: hw
+catalog: hw/network/cisco
 license: GPLv2
 distribution: check_mk
 description:
