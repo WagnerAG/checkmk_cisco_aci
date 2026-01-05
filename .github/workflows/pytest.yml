@@ -2,13 +2,18 @@ name: pytest
 
 on:
   push:
+    paths:
+      - '**/*.py'
+      
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   pytest:
 
     runs-on: ubuntu-latest
     container:
-      image: checkmk/check-mk-raw:2.3.0-latest
+      image: checkmk/check-mk-raw:2.4.0-latest
 
     env:
       OMD_ROOT: /omd/sites/cmk
@@ -19,12 +24,20 @@ jobs:
     steps:
     - name: Initialize Checkmk Site
       run: /docker-entrypoint.sh /bin/true
-    - uses: actions/checkout@v2
+
+    - uses: actions/checkout@v4
+
     - name: Setup links
-      run: ./.devcontainer/setpwd.sh
+      run: ./.devcontainer/symlink.sh
+
     - name: Install pytest
-      run: su -l -c "REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt pip3 install -r $GITHUB_WORKSPACE/.devcontainer/requirements.txt" cmk
+      run: REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt /omd/sites/cmk/bin/python3 -m pip install --user -r $GITHUB_WORKSPACE/.devcontainer/requirements.txt
+
     - name: Update GITHUB_PATH
       run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+      
+    - name: Add local bin to PATH
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
     - name: Run pytest
-      run: python3 -m pytest --cov agent_based
+      run: /omd/sites/cmk/bin/python3 -m pytest $GITHUB_WORKSPACE

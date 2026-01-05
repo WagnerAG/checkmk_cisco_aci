@@ -5,15 +5,15 @@ on:
     tags:
     - 'v*'
     - '!v*[a-z]'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build-release:
     name: Build Release Package
     runs-on: ubuntu-latest
     container:
-      image: checkmk/check-mk-raw:2.3.0-latest
-    permissions:
-      contents: write
+      image: checkmk/check-mk-raw:2.4.0-latest
 
     env:
       OMD_ROOT: /omd/sites/cmk
@@ -24,26 +24,32 @@ jobs:
     steps:
       - name: Initialize Checkmk Site
         run: /docker-entrypoint.sh /bin/true
+
       - uses: actions/checkout@v4
-      - name: Parse Package File
-        run: |
-          NAME=$(python3 -c 'print(eval(open("package").read())["name"])')
-          VERSION=$(python3 -c 'print(eval(open("package").read())["version"])')
-          echo "CMKPKG_NAME=$NAME" >> "$GITHUB_ENV"
-          echo "CMKPKG_VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Setup links
         run: .devcontainer/symlink.sh
+
+      - name: Update GITHUB_PATH
+        run: echo "/omd/sites/cmk/bin" >> $GITHUB_PATH
+
       - name: Build Extension
-        run: |
-          chown -R cmk:cmk $GITHUB_WORKSPACE
-          su -l -c "mkp -v package $GITHUB_WORKSPACE/package" cmk
-          cp /omd/sites/cmk/var/check_mk/packages_local/${CMKPKG_NAME}-${CMKPKG_VERSION}.mkp .
-          echo "pkgfile=${CMKPKG_NAME}-${CMKPKG_VERSION}.mkp" >> $GITHUB_OUTPUT
+        run: .devcontainer/build.sh
         id: cmkpkg
+
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        id: create_release
+        uses: elgohr/Github-Release-Action@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-          files: ${{ steps.cmkpkg.outputs.pkgfile }}
+          tag: ${{ github.ref }}
+          title: Release ${{ github.ref }}
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            ./${{ steps.cmkpkg.outputs.pkgfile }}
