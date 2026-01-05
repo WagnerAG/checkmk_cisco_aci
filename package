@@ -23,7 +23,7 @@
             "cisco_aci/agent_based/aci_tenants.py",
             "cisco_aci/agent_based/aci_version.py",
             "cisco_aci/graphing/metrics.py",
-            "cisco_aci/graphing/perfometer.py",
+            "cisco_aci/graphing/perfometers.py",
             "cisco_aci/libexec/agent_cisco_aci",
             "cisco_aci/rulesets/cisco_aci_check_parameters.py",
             "cisco_aci/rulesets/datasource_program.py",
