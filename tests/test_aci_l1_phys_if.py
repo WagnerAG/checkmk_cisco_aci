@@ -244,7 +244,7 @@ def test_parse_aci_l1_phys_if(string_table: List[List[str]], expected_section: D
     ],
 )
 def test_check_aci_l1_phys_if(item: str, section: Dict[str, AciL1Interface], expected_check_result: Tuple) -> None:
-    with patch("plugins.cisco_aci.agent_based.aci_l1_phys_if.get_value_store") as mock_get:
+    with patch("cmk_addons.plugins.cisco_aci.agent_based.aci_l1_phys_if.get_value_store") as mock_get:
         if item:
             timestamp = int((datetime.now() - timedelta(minutes=2)).timestamp())
             dn = section.get("eth1/3" if item == "eth1/003" else item).dn
