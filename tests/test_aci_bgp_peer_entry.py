@@ -198,7 +198,7 @@ def test_parse_aci_bgp_peer_entry(string_table: List[List[str]], expected_sectio
     ],
 )
 def test_check_aci_bgp_peer_entry(item: str, section: List[BgpPeerEntry], expected_check_result: Tuple) -> None:
-    with patch("plugins.cisco_aci.agent_based.aci_bgp_peer_entry.get_value_store") as mock_get:
+    with patch("cmk_addons.plugins.cisco_aci.agent_based.aci_bgp_peer_entry.get_value_store") as mock_get:
         if item:
             element = next(elem for elem in section if elem.addr == item)
             mock_get.return_value = mocked_value_store(addr=element.addr, timestamp=int((datetime.now() - timedelta(minutes=2)).timestamp()))
