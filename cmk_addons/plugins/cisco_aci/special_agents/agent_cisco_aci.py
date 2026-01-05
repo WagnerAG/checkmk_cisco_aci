@@ -20,29 +20,22 @@ Authors:    Samuel Zehnder <zehnder@netcloud.ch>
 
 """
 
-from collections import defaultdict
-from enum import Enum, unique
-import itertools
-import threading
 import concurrent.futures
-from typing import Dict, List, Set, Optional, Sequence, Tuple, NamedTuple
-from dataclasses import dataclass
-import logging
-
-import time
+import itertools
 import json
-from urllib.parse import urljoin
-import requests
+import logging
+import threading
+import time
+from collections import defaultdict
+from dataclasses import dataclass
+from enum import Enum, unique
 from os.path import join
+from typing import Dict, List, NamedTuple, Optional, Sequence, Set, Tuple
+from urllib.parse import urljoin
 
+import requests
+from cmk.special_agents.v0_unstable.agent_common import ConditionalPiggybackSection, SectionWriter, special_agent_main
 from cmk.special_agents.v0_unstable.argument_parsing import Args, create_default_argument_parser
-
-from cmk.special_agents.v0_unstable.agent_common import (
-    special_agent_main,
-    SectionWriter,
-    ConditionalPiggybackSection,
-)
-
 
 LOGGING = logging.getLogger("agent_cisco_aci")
 
@@ -51,7 +44,7 @@ requests.packages.urllib3.disable_warnings()
 MAX_RETRIES: str = 3
 SLEEP_SECONDS: str = 3
 
-VERSION: float = 0.7
+VERSION: float = 2.0
 NAME: str = "cisco_aci"
 
 DEFAULT_SEPARATOR: str = "|"
@@ -467,7 +460,7 @@ def get_tenants(apic: Apic) -> List[AciTenant]:
 
 
 def get_nodes(apic: Apic) -> Dict:
-    response = apic.session.get(apic.url + "node/class/topSystem.json?query-target=self&rsp-subtree=children&" "rsp-subtree-class=eqptCh&rsp-subtree-include=health")
+    response = apic.session.get(apic.url + "node/class/topSystem.json?query-target=self&rsp-subtree=children&rsp-subtree-class=eqptCh&rsp-subtree-include=health")
     response.raise_for_status()
     nodes = response.json()["imdata"]
     nodelist = dict(spine=[], leaf=[], controller=[])
