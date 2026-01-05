@@ -12,24 +12,19 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
 
 import pytest
+from cmk.agent_based.v2 import Metric, Result, State
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Metric
-from plugins.cisco_aci.agent_based.aci_health import (
-    parse_aci_health,
-    check_aci_health,
-    ACIHealthValues,
-    DEFAULT_HEALTH_LEVELS,
-)
+from cmk_addons.plugins.cisco_aci.agent_based.aci_health import DEFAULT_HEALTH_LEVELS, ACIHealthValues, check_aci_health, parse_aci_health
 
 
 @pytest.mark.parametrize(
     "string_table, expected_section",
     [
         (
-            [['health', '99', '3', '28', '34', '95']],
+            [["health", "99", "3", "28", "34", "95"]],
             ACIHealthValues(99, 3, 28, 34, 95),
         ),
     ],
@@ -43,8 +38,8 @@ def test_parse_aci_health(string_table: List[List[str]], expected_section: ACIHe
     [
         (
             [
-                ['health', '98', '2', '26', '35', '96'],
-                ['health', '99', '3', '28', '34', '95'],
+                ["health", "98", "2", "26", "35", "96"],
+                ["health", "99", "3", "28", "34", "95"],
             ]
         ),
     ],
@@ -54,7 +49,7 @@ def test_invalid_parse_aci_health(string_table: List[List[str]]) -> None:
         parse_aci_health(string_table)
 
     assert isinstance(exec_info.type(), ValueError)
-    assert str(exec_info.value) == 'section must <<<aci_health>>> be a single line but is 2 lines'
+    assert str(exec_info.value) == "section must <<<aci_health>>> be a single line but is 2 lines"
 
 
 @pytest.mark.parametrize(
@@ -63,9 +58,9 @@ def test_invalid_parse_aci_health(string_table: List[List[str]]) -> None:
         (
             ACIHealthValues(99, 3, 28, 34, 95),
             (
-                Result(state=State.OK, summary='Fabric Health Score: 99.00'),
-                Metric('health', 99.0, boundaries=(0.0, 100.0)),
-                Result(state=State.OK, summary='Fabric-wide Faults (crit/warn/maj/min): 3/28/34/95'),
+                Result(state=State.OK, summary="Fabric Health Score: 99.00"),
+                Metric("health", 99.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary="Fabric-wide Faults (crit/warn/maj/min): 3/28/34/95"),
                 Metric("fcrit", 3.0),
                 Metric("fwarn", 28.0),
                 Metric("fmaj", 34.0),
@@ -75,9 +70,9 @@ def test_invalid_parse_aci_health(string_table: List[List[str]]) -> None:
         (
             ACIHealthValues(95, 5, 40, 28, 101),
             (
-                Result(state=State.OK, summary='Fabric Health Score: 95.00'),
-                Metric('health', 95.0, boundaries=(0.0, 100.0)),
-                Result(state=State.OK, summary='Fabric-wide Faults (crit/warn/maj/min): 5/40/28/101'),
+                Result(state=State.OK, summary="Fabric Health Score: 95.00"),
+                Metric("health", 95.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary="Fabric-wide Faults (crit/warn/maj/min): 5/40/28/101"),
                 Metric("fcrit", 5.0),
                 Metric("fwarn", 40.0),
                 Metric("fmaj", 28.0),
@@ -87,9 +82,9 @@ def test_invalid_parse_aci_health(string_table: List[List[str]]) -> None:
         (
             ACIHealthValues(94, 5, 40, 28, 101),
             (
-                Result(state=State.WARN, summary='Fabric Health Score: 94.00 (warn/crit below 95.00/85.00)'),
-                Metric('health', 94.0, boundaries=(0.0, 100.0)),
-                Result(state=State.OK, summary='Fabric-wide Faults (crit/warn/maj/min): 5/40/28/101'),
+                Result(state=State.WARN, summary="Fabric Health Score: 94.00 (warn/crit below 95.00/85.00)"),
+                Metric("health", 94.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary="Fabric-wide Faults (crit/warn/maj/min): 5/40/28/101"),
                 Metric("fcrit", 5.0),
                 Metric("fwarn", 40.0),
                 Metric("fmaj", 28.0),
@@ -99,9 +94,9 @@ def test_invalid_parse_aci_health(string_table: List[List[str]]) -> None:
         (
             ACIHealthValues(85, 7, 45, 28, 101),
             (
-                Result(state=State.WARN, summary='Fabric Health Score: 85.00 (warn/crit below 95.00/85.00)'),
-                Metric('health', 85.0, boundaries=(0.0, 100.0)),
-                Result(state=State.OK, summary='Fabric-wide Faults (crit/warn/maj/min): 7/45/28/101'),
+                Result(state=State.WARN, summary="Fabric Health Score: 85.00 (warn/crit below 95.00/85.00)"),
+                Metric("health", 85.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary="Fabric-wide Faults (crit/warn/maj/min): 7/45/28/101"),
                 Metric("fcrit", 7.0),
                 Metric("fwarn", 45.0),
                 Metric("fmaj", 28.0),
@@ -111,9 +106,9 @@ def test_invalid_parse_aci_health(string_table: List[List[str]]) -> None:
         (
             ACIHealthValues(84, 7, 45, 28, 204),
             (
-                Result(state=State.CRIT, summary='Fabric Health Score: 84.00 (warn/crit below 95.00/85.00)'),
-                Metric('health', 84.0, boundaries=(0.0, 100.0)),
-                Result(state=State.OK, summary='Fabric-wide Faults (crit/warn/maj/min): 7/45/28/204'),
+                Result(state=State.CRIT, summary="Fabric Health Score: 84.00 (warn/crit below 95.00/85.00)"),
+                Metric("health", 84.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary="Fabric-wide Faults (crit/warn/maj/min): 7/45/28/204"),
                 Metric("fcrit", 7.0),
                 Metric("fwarn", 45.0),
                 Metric("fmaj", 28.0),
@@ -123,9 +118,9 @@ def test_invalid_parse_aci_health(string_table: List[List[str]]) -> None:
         (
             ACIHealthValues(63, 12, 61, 39, 1008),
             (
-                Result(state=State.CRIT, summary='Fabric Health Score: 63.00 (warn/crit below 95.00/85.00)'),
-                Metric('health', 63.0, boundaries=(0.0, 100.0)),
-                Result(state=State.OK, summary='Fabric-wide Faults (crit/warn/maj/min): 12/61/39/1008'),
+                Result(state=State.CRIT, summary="Fabric Health Score: 63.00 (warn/crit below 95.00/85.00)"),
+                Metric("health", 63.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary="Fabric-wide Faults (crit/warn/maj/min): 12/61/39/1008"),
                 Metric("fcrit", 12.0),
                 Metric("fwarn", 61.0),
                 Metric("fmaj", 39.0),

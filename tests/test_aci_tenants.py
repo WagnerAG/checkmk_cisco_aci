@@ -12,17 +12,12 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-from typing import Tuple, List, Dict
+from typing import Dict, List, Tuple
 
 import pytest
+from cmk.agent_based.v2 import Metric, Result, State
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State, Metric
-from plugins.cisco_aci.agent_based.aci_tenants import (
-    parse_aci_tenants,
-    check_aci_tenants,
-    ACITenant,
-    DEFAULT_HEALTH_LEVELS,
-)
+from cmk_addons.plugins.cisco_aci.agent_based.aci_tenants import DEFAULT_HEALTH_LEVELS, ACITenant, check_aci_tenants, parse_aci_tenants
 
 
 @pytest.mark.parametrize(
@@ -30,25 +25,25 @@ from plugins.cisco_aci.agent_based.aci_tenants import (
     [
         (
             [
-                ['#name', 'descr', 'dn', 'health_score'],
-                ['infra', '', 'uni/tn-infra', '100'],
+                ["#name", "descr", "dn", "health_score"],
+                ["infra", "", "uni/tn-infra", "100"],
             ],
             {
-                'infra': ACITenant('infra', '', 'uni/tn-infra', 100),
+                "infra": ACITenant("infra", "", "uni/tn-infra", 100),
             },
         ),
         (
             [
-                ['infra', '', 'uni/tn-infra', '100'],
-                ['mgmt', '', 'uni/tn-mgmt', '84'],
-                ['common', '', 'uni/tn-common', '94'],
-                ['LAB', 'Management Tenant', 'uni/tn-LAB', '96'],
+                ["infra", "", "uni/tn-infra", "100"],
+                ["mgmt", "", "uni/tn-mgmt", "84"],
+                ["common", "", "uni/tn-common", "94"],
+                ["LAB", "Management Tenant", "uni/tn-LAB", "96"],
             ],
             {
-                'infra': ACITenant('infra', '', 'uni/tn-infra', 100),
-                'mgmt': ACITenant('mgmt', '', 'uni/tn-mgmt', 84),
-                'common': ACITenant('common', '', 'uni/tn-common', 94),
-                'LAB': ACITenant('LAB', 'Management Tenant', 'uni/tn-LAB', 96),
+                "infra": ACITenant("infra", "", "uni/tn-infra", 100),
+                "mgmt": ACITenant("mgmt", "", "uni/tn-mgmt", 84),
+                "common": ACITenant("common", "", "uni/tn-common", 94),
+                "LAB": ACITenant("LAB", "Management Tenant", "uni/tn-LAB", 96),
             },
         ),
     ],
@@ -61,73 +56,71 @@ def test_parse_aci_tenants(string_table: List[List[str]], expected_section: Dict
     "item, section, expected_check_result",
     [
         (
-            'foo',
+            "foo",
             {},
+            (Result(state=State.UNKNOWN, summary="Sorry - item not found"),),
+        ),
+        (
+            "infra",
+            {
+                "infra": ACITenant("infra", "", "uni/tn-infra", 100),
+                "mgmt": ACITenant("mgmt", "", "uni/tn-mgmt", 84),
+                "common": ACITenant("common", "", "uni/tn-common", 94),
+                "LAB": ACITenant("LAB", "Management Tenant", "uni/tn-LAB", 96),
+            },
             (
-                Result(state=State.UNKNOWN, summary='Sorry - item not found'),
+                Result(state=State.OK, summary="Health Score: 100.00"),
+                Metric("health", 100.0, boundaries=(0.0, 100.0)),
             ),
         ),
         (
-            'infra',
+            "mgmt",
             {
-                'infra': ACITenant('infra', '', 'uni/tn-infra', 100),
-                'mgmt': ACITenant('mgmt', '', 'uni/tn-mgmt', 84),
-                'common': ACITenant('common', '', 'uni/tn-common', 94),
-                'LAB': ACITenant('LAB', 'Management Tenant', 'uni/tn-LAB', 96),
+                "infra": ACITenant("infra", "", "uni/tn-infra", 100),
+                "mgmt": ACITenant("mgmt", "", "uni/tn-mgmt", 84),
+                "common": ACITenant("common", "", "uni/tn-common", 94),
+                "LAB": ACITenant("LAB", "Management Tenant", "uni/tn-LAB", 96),
             },
             (
-                Result(state=State.OK, summary='Health Score: 100.00'),
-                Metric('health', 100.0, boundaries=(0.0, 100.0)),
+                Result(state=State.CRIT, summary="Health Score: 84.00 (warn/crit below 95.00/85.00)"),
+                Metric("health", 84.0, boundaries=(0.0, 100.0)),
             ),
         ),
         (
-            'mgmt',
+            "common",
             {
-                'infra': ACITenant('infra', '', 'uni/tn-infra', 100),
-                'mgmt': ACITenant('mgmt', '', 'uni/tn-mgmt', 84),
-                'common': ACITenant('common', '', 'uni/tn-common', 94),
-                'LAB': ACITenant('LAB', 'Management Tenant', 'uni/tn-LAB', 96),
+                "infra": ACITenant("infra", "", "uni/tn-infra", 100),
+                "mgmt": ACITenant("mgmt", "", "uni/tn-mgmt", 84),
+                "common": ACITenant("common", "", "uni/tn-common", 94),
+                "LAB": ACITenant("LAB", "Management Tenant", "uni/tn-LAB", 96),
             },
             (
-                Result(state=State.CRIT, summary='Health Score: 84.00 (warn/crit below 95.00/85.00)'),
-                Metric('health', 84.0, boundaries=(0.0, 100.0)),
+                Result(state=State.WARN, summary="Health Score: 94.00 (warn/crit below 95.00/85.00)"),
+                Metric("health", 94.0, boundaries=(0.0, 100.0)),
             ),
         ),
         (
-            'common',
+            "cust1",
             {
-                'infra': ACITenant('infra', '', 'uni/tn-infra', 100),
-                'mgmt': ACITenant('mgmt', '', 'uni/tn-mgmt', 84),
-                'common': ACITenant('common', '', 'uni/tn-common', 94),
-                'LAB': ACITenant('LAB', 'Management Tenant', 'uni/tn-LAB', 96),
+                "cust1": ACITenant("cust1", "", "uni/tn-cust1", 86),
             },
             (
-                Result(state=State.WARN, summary='Health Score: 94.00 (warn/crit below 95.00/85.00)'),
-                Metric('health', 94.0, boundaries=(0.0, 100.0)),
+                Result(state=State.WARN, summary="Health Score: 86.00 (warn/crit below 95.00/85.00)"),
+                Metric("health", 86.0, boundaries=(0.0, 100.0)),
             ),
         ),
         (
-            'cust1',
+            "LAB",
             {
-                'cust1': ACITenant('cust1', '', 'uni/tn-cust1', 86),
+                "infra": ACITenant("infra", "", "uni/tn-infra", 100),
+                "mgmt": ACITenant("mgmt", "", "uni/tn-mgmt", 84),
+                "common": ACITenant("common", "", "uni/tn-common", 94),
+                "LAB": ACITenant("LAB", "Management Tenant", "uni/tn-LAB", 96),
             },
             (
-                Result(state=State.WARN, summary='Health Score: 86.00 (warn/crit below 95.00/85.00)'),
-                Metric('health', 86.0, boundaries=(0.0, 100.0)),
-            ),
-        ),
-        (
-            'LAB',
-            {
-                'infra': ACITenant('infra', '', 'uni/tn-infra', 100),
-                'mgmt': ACITenant('mgmt', '', 'uni/tn-mgmt', 84),
-                'common': ACITenant('common', '', 'uni/tn-common', 94),
-                'LAB': ACITenant('LAB', 'Management Tenant', 'uni/tn-LAB', 96),
-            },
-            (
-                Result(state=State.OK, summary='Health Score: 96.00'),
-                Metric('health', 96.0, boundaries=(0.0, 100.0)),
-                Result(state=State.OK, summary='Description: Management Tenant'),
+                Result(state=State.OK, summary="Health Score: 96.00"),
+                Metric("health", 96.0, boundaries=(0.0, 100.0)),
+                Result(state=State.OK, summary="Description: Management Tenant"),
             ),
         ),
     ],

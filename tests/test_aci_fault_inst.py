@@ -12,50 +12,42 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-from typing import Tuple, List
+from typing import List, Tuple
 
 import pytest
+from cmk.agent_based.v2 import Result, State
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State
-from plugins.cisco_aci.agent_based.aci_fault_inst import (
-    parse_aci_fault_inst,
-    check_aci_fault_inst,
-    ACIFaultInst,
-)
-
+from cmk_addons.plugins.cisco_aci.agent_based.aci_fault_inst import ACIFaultInst, check_aci_fault_inst, parse_aci_fault_inst
 
 SECTION_1 = [
-    ACIFaultInst('major', 'F0103', 'Physical Interface eth1/2 on Node 1 of fabric LAB-1 with hostname lab-aci-1 is now down', 'topology/pod-1/node-1/sys/cphys-[eth1/2]/fault-F0103', 'no'),
+    ACIFaultInst("major", "F0103", "Physical Interface eth1/2 on Node 1 of fabric LAB-1 with hostname lab-aci-1 is now down", "topology/pod-1/node-1/sys/cphys-[eth1/2]/fault-F0103", "no"),
 ]
 SECTION_2 = [
-    ACIFaultInst('major', 'F0103', 'Physical Interface eth1/2 on Node 1 of fabric LAB-1 with hostname lab-aci-1 is now down', 'topology/pod-1/node-1/sys/cphys-[eth1/2]/fault-F0103', 'no'),
-    ACIFaultInst('minor', 'F1298', 'For tenant mgmt, management profile default, deployment of in-band EPG INB failed on node 999. Reason Node Cannot Deploy EPG', 'foo/epp/inb-[foo/tn-mgmt/mgmtp-default/inb-INB]/node-999/polDelSt/fault-F1298', 'no'),
-    ACIFaultInst('warning', 'F0299', 'BGP peer is not established, current state Idle', 'topology/pod-1/node-111/sys/bgp/inst/dom-FOO:DMZ/peer-[10.79.7.40/32]/ent-[10.79.7.40]/fault-F0299', 'yes'),
-    ACIFaultInst('critical', 'F0532', 'Port is down, reason being sfpAbsent(connected), used by EPG on node 111 of fabric LAB-1 with hostname lab-aci-1', 'topology/pod-1/node-111/sys/phys-[eth1/7]/phys/fault-F0532', 'no'),
+    ACIFaultInst("major", "F0103", "Physical Interface eth1/2 on Node 1 of fabric LAB-1 with hostname lab-aci-1 is now down", "topology/pod-1/node-1/sys/cphys-[eth1/2]/fault-F0103", "no"),
+    ACIFaultInst("minor", "F1298", "For tenant mgmt, management profile default, deployment of in-band EPG INB failed on node 999. Reason Node Cannot Deploy EPG", "foo/epp/inb-[foo/tn-mgmt/mgmtp-default/inb-INB]/node-999/polDelSt/fault-F1298", "no"),
+    ACIFaultInst("warning", "F0299", "BGP peer is not established, current state Idle", "topology/pod-1/node-111/sys/bgp/inst/dom-FOO:DMZ/peer-[10.79.7.40/32]/ent-[10.79.7.40]/fault-F0299", "yes"),
+    ACIFaultInst("critical", "F0532", "Port is down, reason being sfpAbsent(connected), used by EPG on node 111 of fabric LAB-1 with hostname lab-aci-1", "topology/pod-1/node-111/sys/phys-[eth1/7]/phys/fault-F0532", "no"),
 ]
 
 
 @pytest.mark.parametrize(
     "string_table, expected_section",
     [
-        (
-            [],
-            []
-        ),
+        ([], []),
         (
             [
-                ['#severity', 'code', 'descr', 'dn', 'ack'],
-                ['major', 'F0103', 'Physical Interface eth1/2 on Node 1 of fabric LAB-1 with hostname lab-aci-1 is now down', 'topology/pod-1/node-1/sys/cphys-[eth1/2]/fault-F0103', 'no'],
+                ["#severity", "code", "descr", "dn", "ack"],
+                ["major", "F0103", "Physical Interface eth1/2 on Node 1 of fabric LAB-1 with hostname lab-aci-1 is now down", "topology/pod-1/node-1/sys/cphys-[eth1/2]/fault-F0103", "no"],
             ],
             SECTION_1,
         ),
         (
             [
                 # shall also work without a header row
-                ['major', 'F0103', 'Physical Interface eth1/2 on Node 1 of fabric LAB-1 with hostname lab-aci-1 is now down', 'topology/pod-1/node-1/sys/cphys-[eth1/2]/fault-F0103', 'no'],
-                ['minor', 'F1298', 'For tenant mgmt, management profile default, deployment of in-band EPG INB failed on node 999. Reason Node Cannot Deploy EPG', 'foo/epp/inb-[foo/tn-mgmt/mgmtp-default/inb-INB]/node-999/polDelSt/fault-F1298', 'no'],
-                ['warning', 'F0299', 'BGP peer is not established, current state Idle', 'topology/pod-1/node-111/sys/bgp/inst/dom-FOO:DMZ/peer-[10.79.7.40/32]/ent-[10.79.7.40]/fault-F0299', 'yes'],
-                ['critical', 'F0532', 'Port is down, reason being sfpAbsent(connected), used by EPG on node 111 of fabric LAB-1 with hostname lab-aci-1', 'topology/pod-1/node-111/sys/phys-[eth1/7]/phys/fault-F0532', 'no'],
+                ["major", "F0103", "Physical Interface eth1/2 on Node 1 of fabric LAB-1 with hostname lab-aci-1 is now down", "topology/pod-1/node-1/sys/cphys-[eth1/2]/fault-F0103", "no"],
+                ["minor", "F1298", "For tenant mgmt, management profile default, deployment of in-band EPG INB failed on node 999. Reason Node Cannot Deploy EPG", "foo/epp/inb-[foo/tn-mgmt/mgmtp-default/inb-INB]/node-999/polDelSt/fault-F1298", "no"],
+                ["warning", "F0299", "BGP peer is not established, current state Idle", "topology/pod-1/node-111/sys/bgp/inst/dom-FOO:DMZ/peer-[10.79.7.40/32]/ent-[10.79.7.40]/fault-F0299", "yes"],
+                ["critical", "F0532", "Port is down, reason being sfpAbsent(connected), used by EPG on node 111 of fabric LAB-1 with hostname lab-aci-1", "topology/pod-1/node-111/sys/phys-[eth1/7]/phys/fault-F0532", "no"],
             ],
             SECTION_2,
         ),
@@ -70,22 +62,15 @@ def test_parse_aci_fault_inst(string_table: List[List[str]], expected_section: L
     [
         (
             [],
-            (
-                Result(state=State.OK, summary="0 major alarms, 0 minor alarms, 0 warnings, 0 cleared alarms"),
-            ),
+            (Result(state=State.OK, summary="0 major alarms, 0 minor alarms, 0 warnings, 0 cleared alarms"),),
         ),
-        (
-            SECTION_1,
-            (
-                Result(state=State.OK, summary="1 major alarms, 0 minor alarms, 0 warnings, 0 cleared alarms"),
-            )
-        ),
+        (SECTION_1, (Result(state=State.OK, summary="1 major alarms, 0 minor alarms, 0 warnings, 0 cleared alarms"),)),
         (
             SECTION_2,
             (
-                Result(state=State.CRIT, summary='Critical unacknowledged error: Port is down, reason being sfpAbsent(connected), used by EPG on node 111 of fabric LAB-1 with hostname lab-aci-1'),
+                Result(state=State.CRIT, summary="Critical unacknowledged error: Port is down, reason being sfpAbsent(connected), used by EPG on node 111 of fabric LAB-1 with hostname lab-aci-1"),
                 Result(state=State.OK, summary="1 major alarms, 1 minor alarms, 1 warnings, 0 cleared alarms"),
-            )
+            ),
         ),
     ],
 )

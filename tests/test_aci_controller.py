@@ -12,38 +12,19 @@
 # to the Free Software Foundation, Inc., 51 Franklin St,  Fifth Floor,
 # Boston, MA 02110-1301 USA.
 
-from typing import Tuple, List, Dict
+from typing import Dict, List, Tuple
 
 import pytest
+from cmk.agent_based.v2 import Result, State
 
-from cmk.base.plugins.agent_based.agent_based_api.v1 import Result, State
-from plugins.cisco_aci.agent_based.aci_controller import (
-    parse_aci_controller,
-    check_aci_controller,
-    ACIController,
-)
+from cmk_addons.plugins.cisco_aci.agent_based.aci_controller import ACIController, check_aci_controller, parse_aci_controller
 
 
 @pytest.mark.parametrize(
     "string_table, expected_section",
     [
-        (
-            [],
-            []
-        ),
-        (
-            [["controller", "1", "APIC1", "in-service", "FCH1835V2FM", "APIC-SERVER-M1", "APIC-SERVER-M1"]],
-            [
-                ACIController(
-                    controller_id="1",
-                    name="APIC1",
-                    status="in-service",
-                    serial="FCH1835V2FM",
-                    model="APIC-SERVER-M1",
-                    descr="APIC-SERVER-M1"
-                )
-            ]
-        ),
+        ([], []),
+        ([["controller", "1", "APIC1", "in-service", "FCH1835V2FM", "APIC-SERVER-M1", "APIC-SERVER-M1"]], [ACIController(controller_id="1", name="APIC1", status="in-service", serial="FCH1835V2FM", model="APIC-SERVER-M1", descr="APIC-SERVER-M1")]),
         (
             [
                 ["controller", "1", "APIC1", "degraded", "FCH1835V2FM", "APIC-SERVER-M1", "APIC-SERVER-M1"],
@@ -56,17 +37,10 @@ from plugins.cisco_aci.agent_based.aci_controller import (
                     status="degraded",  # this might not be an official state
                     serial="FCH1835V2FM",
                     model="APIC-SERVER-M1",
-                    descr="APIC-SERVER-M1"
+                    descr="APIC-SERVER-M1",
                 ),
-                ACIController(
-                    controller_id="2",
-                    name="ACI01",
-                    status="in-service",
-                    serial="FCH1935V1Z8",
-                    model="APIC-SERVER-M2",
-                    descr="APIC-SERVER-M2"
-                ),
-            ]
+                ACIController(controller_id="2", name="ACI01", status="in-service", serial="FCH1935V1Z8", model="APIC-SERVER-M2", descr="APIC-SERVER-M2"),
+            ],
         ),
     ],
 )
@@ -81,24 +55,10 @@ ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
         status="failied",  # this might not be an official state
         serial="FCH1935V1Z3",
         model="APIC-SERVER-M2",
-        descr="APIC-SERVER-M2"
+        descr="APIC-SERVER-M2",
     ),
-    ACIController(
-        controller_id="2",
-        name="ACI02",
-        status="in-service",
-        serial="FCH1935V1Z8",
-        model="APIC-SERVER-M2",
-        descr="APIC-SERVER-M2"
-    ),
-    ACIController(
-        controller_id="3",
-        name="ACI03",
-        status="in-service",
-        serial="FCH1935V1U7",
-        model="APIC-SERVER-M2",
-        descr="APIC-SERVER-M2"
-    ),
+    ACIController(controller_id="2", name="ACI02", status="in-service", serial="FCH1935V1Z8", model="APIC-SERVER-M2", descr="APIC-SERVER-M2"),
+    ACIController(controller_id="3", name="ACI03", status="in-service", serial="FCH1935V1U7", model="APIC-SERVER-M2", descr="APIC-SERVER-M2"),
 ]
 
 
@@ -108,28 +68,14 @@ ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
         (
             "",
             [],
-            (
-                Result(state=State.UNKNOWN, summary='Sorry - item not found'),
-            ),
+            (Result(state=State.UNKNOWN, summary="Sorry - item not found"),),
         ),
         (
             "1",
             [
-                ACIController(
-                    controller_id="1",
-                    name="APIC1",
-                    status="in-service",
-                    serial="FCH1835V2FM",
-                    model="APIC-SERVER-M1",
-                    descr="APIC-SERVER-M1"
-                ),
+                ACIController(controller_id="1", name="APIC1", status="in-service", serial="FCH1835V2FM", model="APIC-SERVER-M1", descr="APIC-SERVER-M1"),
             ],
-            (
-                Result(
-                    state=State.OK,
-                    summary='APIC1 is in-service, Model: APIC-SERVER-M1, Serial: FCH1835V2FM'
-                ),
-            ),
+            (Result(state=State.OK, summary="APIC1 is in-service, Model: APIC-SERVER-M1, Serial: FCH1835V2FM"),),
         ),
         (
             "1",
@@ -140,62 +86,28 @@ ACI_GROUP_WITH_FAILED_HOST: List[ACIController] = [
                     status="degraed",  # this might not be an official state
                     serial="FCH1835V2FM",
                     model="APIC-SERVER-M1",
-                    descr="APIC-SERVER-M1"
+                    descr="APIC-SERVER-M1",
                 ),
             ],
-            (
-                Result(
-                    state=State.CRIT,
-                    summary='APIC1 is degraed, Model: APIC-SERVER-M1, Serial: FCH1835V2FM'
-                ),
-            ),
+            (Result(state=State.CRIT, summary="APIC1 is degraed, Model: APIC-SERVER-M1, Serial: FCH1835V2FM"),),
         ),
         (
             "2",
             [
-                ACIController(
-                    controller_id="1",
-                    name="APIC1",
-                    status="in-service",
-                    serial="FCH1835V2FM",
-                    model="APIC-SERVER-M1",
-                    descr="APIC-SERVER-M1"
-                ),
-                ACIController(
-                    controller_id="2",
-                    name="ACI01",
-                    status="in-service",
-                    serial="FCH1935V1Z8",
-                    model="APIC-SERVER-M2",
-                    descr="APIC-SERVER-M2"
-                ),
+                ACIController(controller_id="1", name="APIC1", status="in-service", serial="FCH1835V2FM", model="APIC-SERVER-M1", descr="APIC-SERVER-M1"),
+                ACIController(controller_id="2", name="ACI01", status="in-service", serial="FCH1935V1Z8", model="APIC-SERVER-M2", descr="APIC-SERVER-M2"),
             ],
-            (
-                Result(
-                    state=State.OK,
-                    summary='ACI01 is in-service, Model: APIC-SERVER-M2, Serial: FCH1935V1Z8'
-                ),
-            ),
+            (Result(state=State.OK, summary="ACI01 is in-service, Model: APIC-SERVER-M2, Serial: FCH1935V1Z8"),),
         ),
         (
             "1",
             ACI_GROUP_WITH_FAILED_HOST,
-            (
-                Result(
-                    state=State.CRIT,
-                    summary='ACI01 is failied, Model: APIC-SERVER-M2, Serial: FCH1935V1Z3'
-                ),
-            ),
+            (Result(state=State.CRIT, summary="ACI01 is failied, Model: APIC-SERVER-M2, Serial: FCH1935V1Z3"),),
         ),
         (
             "3",
             ACI_GROUP_WITH_FAILED_HOST,
-            (
-                Result(
-                    state=State.OK,
-                    summary='ACI03 is in-service, Model: APIC-SERVER-M2, Serial: FCH1935V1U7'
-                ),
-            ),
+            (Result(state=State.OK, summary="ACI03 is in-service, Model: APIC-SERVER-M2, Serial: FCH1935V1U7"),),
         ),
     ],
 )
