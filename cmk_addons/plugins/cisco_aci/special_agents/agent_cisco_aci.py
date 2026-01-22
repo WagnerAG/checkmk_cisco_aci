@@ -27,7 +27,7 @@ import logging
 import threading
 import time
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, unique
 from os.path import join
 from typing import Dict, List, NamedTuple, Optional, Sequence, Set, Tuple
@@ -60,6 +60,7 @@ class Apic:
         url, session = self._log_into_aci(args)
         self.url = url
         self.session = session
+        self.args = args
 
     def _log_into_aci(self, args):
         num_hosts = len(args.host)
@@ -67,7 +68,7 @@ class Apic:
         for i, host in enumerate(args.host, start=1):
             url = f"https://{host}/api/"
             try:
-                session = self._login(url, args.user, args.password)
+                session = self._login(url, args.user, args.password, args.no_cert_check)
                 break
             except requests.exceptions.ConnectionError as e:
                 self._handle_error(current_host=i, num_hosts=num_hosts, desc="Could not reach APIC (!!)", error=e, exit_code=2)
@@ -81,20 +82,20 @@ class Apic:
         return url, session
 
     @staticmethod
-    def _login(url, user, pwd) -> requests.Session:
+    def _login(url, user, pwd, no_cert_check) -> requests.Session:
         """APIC Login"""
 
         creds = {"aaaUser": {"attributes": {"name": user, "pwd": pwd}}}
 
         counter = 1
         s = requests.Session()
-        response = s.post(url + "aaaLogin.json", json=creds, verify=False, timeout=2.0)
+        response = s.post(url + "aaaLogin.json", json=creds, verify=not no_cert_check, timeout=2.0)
 
         while response.status_code == requests.codes.unauthorized:
             if counter > MAX_RETRIES:
                 raise requests.HTTPError(json.loads(response.text)["imdata"][0]["error"]["attributes"]["text"])
             time.sleep(SLEEP_SECONDS)
-            response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=False, timeout=2.0)
+            response = s.post(url + "aaaLogin.json", data=json.dumps(creds), verify=not no_cert_check, timeout=2.0)
             counter += 1
 
         response.raise_for_status()
@@ -110,13 +111,29 @@ class Apic:
             exit(exit_code)
 
     def get_imdata(self, endpoint: str) -> List:
-        response = self.session.get(urljoin(self.url, endpoint))
+        response = self.session.get(urljoin(self.url, endpoint), verify=not self.args.no_cert_check)
         response.raise_for_status()
         return response.json()["imdata"]
 
     def get_data_from_class(self, aci_class: str) -> List:
         result = self.get_imdata(endpoint=f"class/{aci_class}.json")
         return [item[aci_class]["attributes"] for item in result]
+
+
+@dataclass(slots=True)
+class FaultCount:
+    """
+    Detailed fault counts per node
+    """
+
+    crit: int = 0
+    critAcked: int = 0
+    maj: int = 0
+    majAcked: int = 0
+    minor: int = 0
+    minorAcked: int = 0
+    warn: int = 0
+    warnAcked: int = 0
 
 
 @dataclass
@@ -128,17 +145,22 @@ class AciNode:
     node_id: str
     health: str = "-1"
     model: str = "unknown"
+    fault_counts: FaultCount = field(default_factory=FaultCount)
     descr: str = ""
 
-    def build_node_output(self) -> Tuple:
+    def build_node_output(self) -> Tuple[str, ...]:
         if self.role == "controller":
-            node_info = (self.role, self.node_id, self.name, self.state, self.serial, self.model, self.descr)
+            fc = self.fault_counts
+            fault_crit = str(int(fc["crit"]) - int(fc["critAcked"]))
+            fault_maj = str(int(fc["maj"]) - int(fc["majAcked"]))
+            fault_minor = str(int(fc["minor"]) - int(fc["minorAcked"]))
+            fault_warn = str(int(fc["warn"]) - int(fc["warnAcked"]))
+
+            node_info = (self.role, self.node_id, self.name, self.state, self.serial, self.model, fault_crit, fault_maj, fault_minor, fault_warn, self.descr)
         else:
             node_info = (self.role, self.node_id, self.name, self.state, self.health, self.serial, self.model, self.descr)
 
-        node_info = tuple(map(str.strip, node_info))  # sanitize strings
-
-        return node_info
+        return tuple(str(x).strip() for x in node_info)
 
     @property
     def node_str(self):
@@ -460,9 +482,7 @@ def get_tenants(apic: Apic) -> List[AciTenant]:
 
 
 def get_nodes(apic: Apic) -> Dict:
-    response = apic.session.get(apic.url + "node/class/topSystem.json?query-target=self&rsp-subtree=children&rsp-subtree-class=eqptCh&rsp-subtree-include=health")
-    response.raise_for_status()
-    nodes = response.json()["imdata"]
+    nodes = apic.get_imdata("node/class/topSystem.json?query-target=self&rsp-subtree=children&rsp-subtree-class=eqptCh&rsp-subtree-include=health,fault-count")
     nodelist = dict(spine=[], leaf=[], controller=[])
 
     for node in nodes:
@@ -477,6 +497,8 @@ def get_nodes(apic: Apic) -> Dict:
         for child in node["topSystem"]["children"]:
             if "healthInst" in child:
                 aci_node.health = child["healthInst"]["attributes"]["cur"]
+            if "faultCounts" in child:
+                aci_node.fault_counts = child["faultCounts"]["attributes"]
             if "eqptCh" in child:
                 aci_node.descr = child["eqptCh"]["attributes"]["descr"]
                 aci_node.model = child["eqptCh"]["attributes"]["model"]
@@ -486,17 +508,14 @@ def get_nodes(apic: Apic) -> Dict:
     return nodelist
 
 
-def get_faults(session, url):
-    response = session.get(url + "node/mo/fltCnts.json")
-    response.raise_for_status()
-    faults = response.json()["imdata"][0]["faultCountsWithDetails"]["attributes"]
+def get_faults(apic: Apic) -> Tuple[str, str, str, str]:
+    imdata = apic.get_imdata("node/mo/fltCnts.json")
+    faults = imdata[0]["faultCountsWithDetails"]["attributes"]
     return faults["crit"], faults["warn"], faults["maj"], faults["minor"]
 
 
-def get_versions(session, url):
-    response = session.get(url + "node/class/firmwareCtrlrRunning.json")
-    response.raise_for_status()
-    versions = response.json()["imdata"]
+def get_versions(apic: Apic) -> List[Tuple[str, str]]:
+    versions = apic.get_imdata("node/class/firmwareCtrlrRunning.json")
 
     running = []
     for version in versions:
@@ -504,9 +523,7 @@ def get_versions(session, url):
         version = version["firmwareCtrlrRunning"]["attributes"]["version"]
         running.append((ctrl_id, version))
 
-    response = session.get(url + "node/class/firmwareRunning.json")
-    response.raise_for_status()
-    versions = response.json()["imdata"]
+    versions = apic.get_imdata("node/class/firmwareRunning.json")
     for version in versions:
         node_id = version["firmwareRunning"]["attributes"]["dn"].split("/")[2]
         version = version["firmwareRunning"]["attributes"]["version"]
@@ -641,7 +658,7 @@ def output_aci_health(apic):
     health_score = get_aci_health(apic)
 
     with SectionWriter("aci_health", separator=DEFAULT_SEPARATOR) as writer:
-        writer.append(DEFAULT_SEPARATOR.join(("health", str(health_score), *get_faults(apic.session, apic.url))))
+        writer.append(DEFAULT_SEPARATOR.join(("health", str(health_score), *get_faults(apic))))
 
 
 def output_tenants(apic: Apic):
@@ -653,8 +670,8 @@ def output_tenants(apic: Apic):
             writer.append(tenant)
 
 
-def output_aci_version(url, session):
-    versions = get_versions(session, url)
+def output_aci_version(apic):
+    versions = get_versions(apic)
 
     with SectionWriter("aci_version", separator=DEFAULT_SEPARATOR) as writer:
         for node, version in versions:
@@ -746,13 +763,12 @@ def agent_cisco_aci_main(args: Args) -> None:
 
     LOGGING.info("Setup HTTPS connection..")
     apic = Apic(args)
-    url, session = apic.url, apic.session
 
     LOGGING.info("Write agent header..")
     output_header()
 
     LOGGING.info("Fetch and write version info..")
-    output_aci_version(url, session)
+    output_aci_version(apic)
 
     LOGGING.info("Fetch and write health status..")
     output_aci_health(apic)
@@ -804,6 +820,7 @@ def parse_arguments(argv: Optional[Sequence[str]]) -> Args:
     parser.add_argument("-D", "--dns-domain", type=str, required=False, metavar="DOMAIN", help="DNS domain of nodes (used to correctly name piggyback hosts)")
     parser.add_argument("-u", "--user", type=str, required=True, metavar="USER", help="ACI Username")
     parser.add_argument("-p", "--password", type=str, required=True, metavar="PASSWORD", help="ACI Password")
+    parser.add_argument("--no-cert-check", action="store_true", help="""Disables the checking of the servers ssl certificate""", required=False, default=False)
     parser.add_argument("--only-iface-admin-up", action="store_true", required=False, default=False, help='Only monitor interfaces in admin state "up"')
 
     parser.add_argument("--skip-bgp-peer-entry", action="store_true", required=False, default=False, help="skip processing section aci_bgp_peer_entry")

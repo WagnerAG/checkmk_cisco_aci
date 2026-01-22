@@ -22,14 +22,8 @@ Authors:    Samuel Zehnder <zehnder@netcloud.ch>
 
 from collections.abc import Iterable
 
+from cmk.server_side_calls.v1 import HostConfig, Secret, SpecialAgentCommand, SpecialAgentConfig
 from pydantic import BaseModel
-
-from cmk.server_side_calls.v1 import (
-    HostConfig,
-    Secret,
-    SpecialAgentCommand,
-    SpecialAgentConfig,
-)
 
 """
 Validator class to validate all the params
@@ -43,6 +37,7 @@ class ACIParams(BaseModel):
     dns_domain: str | None = None
     only_iface_admin_up: bool | None = None
     skip_sections: list | None = None
+    no_cert_check: bool | None = None
 
 
 def generate_cisco_aci_command(params: ACIParams, host_config: HostConfig) -> Iterable[SpecialAgentCommand]:
@@ -62,6 +57,9 @@ def generate_cisco_aci_command(params: ACIParams, host_config: HostConfig) -> It
 
     if params.only_iface_admin_up:
         args.append("--only-iface-admin-up")
+
+    if params.no_cert_check:
+        args.append("--no-cert-check")
 
     if params.skip_sections:
         if "aci_bgp_peer_entry" in params.skip_sections:

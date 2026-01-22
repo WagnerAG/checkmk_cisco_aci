@@ -21,18 +21,9 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 
 from typing import Final
 
-from cmk.rulesets.v1 import Help, Title
-from cmk.rulesets.v1.form_specs import (
-    BooleanChoice,
-    Dictionary,
-    MultipleChoiceElement,
-    MultipleChoice,
-    Password,
-    String,
-    DictElement,
-)
+from cmk.rulesets.v1 import Help, Label, Title
+from cmk.rulesets.v1.form_specs import BooleanChoice, DictElement, Dictionary, MultipleChoice, MultipleChoiceElement, Password, String, migrate_to_password
 from cmk.rulesets.v1.rule_specs import SpecialAgent, Topic
-
 
 RAW_ACI_Features: Final = [
     MultipleChoiceElement(name="aci_bgp_peer_entry", title=Title("ACI BGP Peer entry")),
@@ -52,7 +43,6 @@ def _valuespec_special_agent_cisco_aci() -> Dictionary:
                 parameter_form=String(
                     title=Title("APIC IP address(es)"),
                     help_text=Help("Multiple Controller IPs are accepted"),
-                    #custom_validate=(validators.MatchRegex('\b(?:\d{1,3}\.){3}\d{1,3}\b')),
                 ),
             ),
             "user": DictElement(
@@ -66,7 +56,13 @@ def _valuespec_special_agent_cisco_aci() -> Dictionary:
                 required=True,
                 parameter_form=Password(
                     title=Title("Password"),
-                    #migrate=migrate_to_password,
+                    migrate=migrate_to_password,
+                ),
+            ),
+            "no_cert_check": DictElement(
+                parameter_form=BooleanChoice(
+                    title=Title("Do not check certificate"),
+                    label=Label("Enabled"),
                 ),
             ),
             "dns_domain": DictElement(
@@ -96,9 +92,7 @@ def _valuespec_special_agent_cisco_aci() -> Dictionary:
 rule_spec_cisco_aci = SpecialAgent(
     name="cisco_aci",
     title=Title("Cisco ACI"),
-    help_text=Help("This rule selects the Agent Cisco ACI instead of the normal Check_MK Agent "
-                   "which collects the data through the Cisco ACI REST API"
-                   "The Cisco ACI special agent needs a local user in form (local\checkmk_monitoring)"),
+    help_text=Help("This rule selects the Agent Cisco ACI instead of the normal Check_MK Agent which collects the data through the Cisco ACI REST APIThe Cisco ACI special agent needs a local user in form (local\checkmk_monitoring)"),
     topic=Topic.NETWORKING,
     parameter_form=_valuespec_special_agent_cisco_aci,
 )
