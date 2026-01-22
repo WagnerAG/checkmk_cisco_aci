@@ -1,19 +1,9 @@
 {
-    "python.analysis.exclude": [
-       "/omd/sites/cmk/lib/**",
-       "/omd/sites/cmk/version/**",
-       "/omd/sites/cmk/share/**",
-       "/omd/sites/cmk/include/**",
-       "/omd/sites/cmk/bin/**",
-       "/omd/sites/cmk/etc/**",
-    ],
     "python.testing.pytestArgs": [
         "."
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "files.associations": {
-        "package": "python"
-    },
-    "python.defaultInterpreterPath": "/omd/sites/cmk/bin/python3"
+    "python.defaultInterpreterPath": "/omd/sites/cmk/bin/python3",
+    "editor.defaultFormatter": "charliermarsh.ruff"
 }
