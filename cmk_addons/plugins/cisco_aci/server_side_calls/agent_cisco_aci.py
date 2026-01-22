@@ -45,13 +45,6 @@ class ACIParams(BaseModel):
     skip_sections: list | None = None
 
 
-# def _parse_secret(secret: Object) -> Secret:
-#    if not isinstance(secret, Secret):
-#        raise TypeError()
-#    return secret
-#
-
-
 def generate_cisco_aci_command(params: ACIParams, host_config: HostConfig) -> Iterable[SpecialAgentCommand]:
     """function to build command line arguments that will be used to
     invoke the special agent.
