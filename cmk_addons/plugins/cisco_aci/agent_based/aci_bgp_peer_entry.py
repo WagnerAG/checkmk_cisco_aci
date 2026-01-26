@@ -20,25 +20,26 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 """
 
 from __future__ import annotations
+
+import time
 from dataclasses import dataclass
 from typing import Dict, List, NamedTuple, Optional
-from pydantic import BaseModel, Field
-import time
 
 from cmk.agent_based.v2 import (
-    check_levels,
+    AgentSection,
+    CheckPlugin,
     CheckResult,
     DiscoveryResult,
-    CheckPlugin,
-    AgentSection,
     Result,
     Service,
     State,
+    check_levels,
     get_rate,
     get_value_store,
 )
-from .aci_general import convert_rate, to_int, ErrorLevels
+from pydantic import BaseModel, Field
 
+from .aci_general import ErrorLevels, convert_rate, to_int
 
 # by default we only alert on BGP connection drop
 DEFAULT_BGP_RATE_LEVELS: Dict = {

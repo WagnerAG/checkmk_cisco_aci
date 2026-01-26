@@ -7,3 +7,4 @@ v0.7 Refactoring by Simon Meister
 v1.0.0 Refactoring to CheckMK 2.3
 v2.0.0 Refactoring for CheckMK API's V2 and CheckMK 2.4 Support
 v2.0.1 Remove the limit for CheckMK 2.3 and newer
+v2.0.2 Refactor special Agent, add certificate suppression, fix controller health

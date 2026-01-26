@@ -8,10 +8,7 @@
             "name": "Python: Aktuelle Datei",
             "type": "python",
             "request": "launch",
-            "program": "python3",
-            "args": [
-                "${file}"
-            ],
+            "program": "${file}",
             "console": "integratedTerminal"
         },
         {
@@ -64,35 +61,6 @@
             "-A",
             "-f",
             "${input:envHOST}"
-            ],
-            "console": "integratedTerminal",
-        },
-        // my new Check-Debug-Config
-        {
-            "name": "cmk - robot",
-            "type": "python",
-            "request": "launch",
-            "program": "python",
-            "args": [
-                "/omd/sites/cmk/bin/cmk",
-                "-vvv",
-                "--debug",
-                "-n",
-                "--checks=usp_ses",
-                "localhost"
-            ],
-            "console": "integratedTerminal",
-        },
-        {
-            "name": "cmk - pytest",
-            "type": "python",
-            "request": "launch",
-            "program": "/omd/sites/cmk/bin/python3",
-            "args": [
-                "-m",
-                "pytest",
-                "--cov",
-                "agent_based"
             ],
             "console": "integratedTerminal",
         }

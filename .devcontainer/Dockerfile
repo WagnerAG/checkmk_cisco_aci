@@ -1,13 +1,14 @@
 # See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.155.1/containers/ubuntu/.devcontainer/base.Dockerfile
 
-ARG VARIANT
+ARG VARIANT="2.4.0-latest"
+
 FROM checkmk/check-mk-cloud:${VARIANT}
 
 RUN /docker-entrypoint.sh /bin/true
 
 # [Optional] Uncomment this section to install additional OS packages.
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends nodejs gcc vim locate gh
+    && apt-get -y install --no-install-recommends nodejs gcc vim locate gh gnupg gnupg-agent pinentry-curses
 
 ADD requirements.txt /tmp/requirements.txt
 RUN PATH="/omd/sites/cmk/bin:${PATH}" \
