@@ -44,7 +44,7 @@ requests.packages.urllib3.disable_warnings()
 MAX_RETRIES: str = 3
 SLEEP_SECONDS: str = 3
 
-VERSION: str = "2.0.2"
+VERSION: str = "2.0.3"
 NAME: str = "cisco_aci"
 
 DEFAULT_SEPARATOR: str = "|"
