@@ -106,7 +106,7 @@ L1_INTERFACES: List[AciL1Interface] = {
             ),
         ),
         (
-            {"discovery_single": (True, {"long_if_name": False, "pad_portnumbers": True}), "matching_conditions": (True, {})},
+            {"discovery_single": ("enabled", {"long_if_name": "no", "pad_portnumbers": "yes"}), "matching_conditions": ("match_all", None)},
             L1_INTERFACES,
             (
                 Service(item="eth1/33"),
@@ -118,17 +118,17 @@ L1_INTERFACES: List[AciL1Interface] = {
             ),
         ),
         (
-            {"discovery_single": (False, {}), "matching_conditions": (True, {})},
+            {"discovery_single": ("disabled", None), "matching_conditions": ("match_all", None)},
             L1_INTERFACES,
             tuple(),
         ),
         (
-            {"discovery_single": (True, {"long_if_name": True, "pad_portnumbers": False}), "matching_conditions": (False, {"port_admin_states": ["2"]})},
+            {"discovery_single": ("enabled", {"long_if_name": "yes", "pad_portnumbers": "no"}), "matching_conditions": ("match_conditions", {"port_admin_states": ["admin_down"]})},
             L1_INTERFACES,
             (Service(item="Ethernet1/34"),),
         ),
         (
-            {"discovery_single": (True, {"long_if_name": False, "pad_portnumbers": False}), "matching_conditions": (False, {"port_admin_states": ["1"]})},
+            {"discovery_single": ("enabled", {"long_if_name": "no", "pad_portnumbers": "no"}), "matching_conditions": ("match_conditions", {"port_admin_states": ["admin_up"]})},
             L1_INTERFACES,
             (
                 Service(item="eth1/33"),
@@ -139,21 +139,21 @@ L1_INTERFACES: List[AciL1Interface] = {
             ),
         ),
         (
-            {"discovery_single": (True, {"long_if_name": False, "pad_portnumbers": False}), "matching_conditions": (False, {"port_admin_states": ["2"], "port_oper_states": ["2"]})},
+            {"discovery_single": ("enabled", {"long_if_name": "no", "pad_portnumbers": "no"}), "matching_conditions": ("match_conditions", {"port_admin_states": ["admin_down"], "port_oper_states": ["oper_up"]})},
             L1_INTERFACES,
             tuple(),
         ),
         (
             {
                 "discovery_single": (
-                    True,
+                    "enabled",
                     {
-                        "long_if_name": False,
+                        "long_if_name": "no",
                         "labels": {"os": "aci_büchse"},
-                        "pad_portnumbers": False,
+                        "pad_portnumbers": "no",
                     },
                 ),
-                "matching_conditions": (False, {"port_oper_states": ["1"]}),
+                "matching_conditions": ("match_conditions", {"port_oper_states": ["oper_down"]}),
             },
             L1_INTERFACES,
             (
@@ -162,22 +162,22 @@ L1_INTERFACES: List[AciL1Interface] = {
             ),
         ),
         (
-            {"discovery_single": (True, {"long_if_name": False, "pad_portnumbers": False}), "matching_conditions": (False, {"port_oper_states": ["2"]})},
+            {"discovery_single": ("enabled", {"long_if_name": "no", "pad_portnumbers": "no"}), "matching_conditions": ("match_conditions", {"port_oper_states": ["oper_up"]})},
             L1_INTERFACES,
             (Service(item="eth1/1"),),
         ),
         (
-            {"discovery_single": (True, {"long_if_name": False, "pad_portnumbers": False}), "matching_conditions": (False, {"port_oper_states": ["0"]})},
+            {"discovery_single": ("enabled", {"long_if_name": "no", "pad_portnumbers": "no"}), "matching_conditions": ("match_conditions", {"port_oper_states": ["oper_unknown"]})},
             L1_INTERFACES,
             (Service(item="eth1/2"),),
         ),
         (
-            {"discovery_single": (True, {"labels": {"fancy_level": "pretty_fancy", "tech": "sdn"}, "long_if_name": False, "pad_portnumbers": False}), "matching_conditions": (False, {"port_oper_states": ["3"]})},
+            {"discovery_single": ("enabled", {"labels": {"fancy_level": "pretty_fancy", "tech": "sdn"}, "long_if_name": "no", "pad_portnumbers": "no"}), "matching_conditions": ("match_conditions", {"port_oper_states": ["oper_link_up"]})},
             L1_INTERFACES,
             (Service(item="eth1/3", labels=[ServiceLabel("fancy_level", "pretty_fancy"), ServiceLabel("tech", "sdn")]),),
         ),
         (
-            {"discovery_single": (True, {"long_if_name": False, "pad_portnumbers": False}), "matching_conditions": (False, {"port_oper_states": ["4"]})},
+            {"discovery_single": ("enabled", {"long_if_name": "no", "pad_portnumbers": "no"}), "matching_conditions": ("match_conditions", {"port_oper_states": ["oper_channel_admin_down"]})},
             L1_INTERFACES,
             (Service(item="eth1/4"),),
         ),

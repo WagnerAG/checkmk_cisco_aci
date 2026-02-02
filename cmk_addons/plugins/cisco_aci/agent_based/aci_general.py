@@ -21,23 +21,23 @@ Authors:    Samuel Zehnder <zehnder@netcloud.ch>
 """
 
 from __future__ import annotations
-from typing import List, Tuple, Dict, Optional
+
 from contextlib import suppress
 from enum import Enum
-from pydantic import BaseModel, Field
+from typing import Dict, List, Optional, Tuple
 
 from cmk.agent_based.v2 import ServiceLabel
-
+from pydantic import BaseModel, Field
 
 DEFAULT_DISCOVERY_PARAMS: Dict = {
     "discovery_single": (
-        True,
+        "enabled",
         {
-            "long_if_name": True,
-            "pad_portnumbers": False,
+            "long_if_name": "yes",
+            "pad_portnumbers": "no",
         },
     ),
-    "matching_conditions": (False, {}),
+    "matching_conditions": ("match_all", None),
 }
 
 
@@ -107,15 +107,24 @@ def get_discovery_item_name(
     labels = {}
 
     # check if we want to detect interfaces at all
-    if not params["discovery_single"][0]:
+    # New format: ("enabled", {...}) or ("disabled", None)
+    # Old format: (True, {...}) or (False, {})
+    discovery_choice = params["discovery_single"][0]
+    if discovery_choice == "disabled" or discovery_choice is False:
         return None, []
 
     # check if we want to pad port numbers with zeros
-    if params["discovery_single"][1]["pad_portnumbers"]:
+    # New format: "yes" or "no"
+    # Old format: True or False
+    pad_portnumbers = params["discovery_single"][1].get("pad_portnumbers", "no")
+    if pad_portnumbers == "yes" or pad_portnumbers is True:
         interface_id = pad_interface_id(interface_id, pad_length)
 
     # check if we want to replace interface name with a long version
-    if params["discovery_single"][1]["long_if_name"]:
+    # New format: "yes" or "no"
+    # Old format: True or False
+    long_if_name = params["discovery_single"][1].get("long_if_name", "no")
+    if long_if_name == "yes" or long_if_name is True:
         interface_id = format_interface_id(interface_id)
 
     # get labels

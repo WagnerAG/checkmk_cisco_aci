@@ -20,33 +20,15 @@ Authors:    Roger Ellenberger <roger.ellenberger@wagner.ch>
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
 
 import time
-from typing import Dict, NamedTuple, Optional, Tuple, Sequence, List
+from dataclasses import dataclass
+from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
+
+from cmk.agent_based.v2 import AgentSection, CheckPlugin, CheckResult, DiscoveryResult, Metric, Result, Service, ServiceLabel, State, get_rate, get_value_store
 from pydantic import BaseModel, Field
 
-from cmk.agent_based.v2 import (
-    Result,
-    Service,
-    CheckResult,
-    DiscoveryResult,
-    AgentSection,
-    CheckPlugin,
-    ServiceLabel,
-    State,
-    Metric,
-    get_rate,
-    get_value_store,
-)
-from .aci_general import (
-    convert_rate,
-    get_discovery_item_name,
-    get_orig_interface_id,
-    get_max_if_padding,
-    DEFAULT_DISCOVERY_PARAMS,
-    ErrorLevels,
-)
+from .aci_general import DEFAULT_DISCOVERY_PARAMS, ErrorLevels, convert_rate, get_discovery_item_name, get_max_if_padding, get_orig_interface_id
 
 
 class L1ErrorLevels(BaseModel):
@@ -74,6 +56,19 @@ OPERATIONAL_PORT_STATE = {
 ADMIN_PORT_STATE = {
     "up": "1",
     "down": "2",
+}
+
+OPER_STATE_IDENTIFIER_TO_VALUE = {
+    "oper_unknown": "0",
+    "oper_down": "1",
+    "oper_up": "2",
+    "oper_link_up": "3",
+    "oper_channel_admin_down": "4",
+}
+
+ADMIN_STATE_IDENTIFIER_TO_VALUE = {
+    "admin_up": "1",
+    "admin_down": "2",
 }
 
 
@@ -195,9 +190,26 @@ def parse_aci_l1_phys_if(string_table) -> Dict[str, AciL1Interface]:
     return {line[1]: AciL1Interface.from_string_table(line) for line in string_table if not line[0].startswith("#")}
 
 
+def _normalize_state_values(state_list: List[str], identifier_mapping: Dict[str, str]) -> List[str]:
+    """Convert new identifier format to numeric values, keep old format as-is."""
+    normalized = []
+    for state in state_list:
+        # If it's a new identifier (e.g., "oper_up"), convert to numeric value
+        if state in identifier_mapping:
+            normalized.append(identifier_mapping[state])
+        else:
+            # Keep old numeric format as-is (e.g., "0", "1", "2")
+            normalized.append(state)
+    return normalized
+
+
 def _check_port_state(port_matching_condition: Dict, interface: AciL1Interface) -> bool:
     admin_states = port_matching_condition.get("port_admin_states", [*ADMIN_PORT_STATE.values()])
     oper_states = port_matching_condition.get("port_oper_states", [*OPERATIONAL_PORT_STATE.values()])
+
+    # Normalize states to support both old and new format
+    admin_states = _normalize_state_values(admin_states, ADMIN_STATE_IDENTIFIER_TO_VALUE)
+    oper_states = _normalize_state_values(oper_states, OPER_STATE_IDENTIFIER_TO_VALUE)
 
     return (interface.port_admin_state in admin_states) and (interface.port_oper_state in oper_states)
 
@@ -212,10 +224,11 @@ def _check_interface_discovery(
     interface_id, labels = get_discovery_item_name(params, interface_id, pad_length)
 
     # check if we detect ports only on certain condition
-    # value is False if we shall apply a filtering
-    if not params["matching_conditions"][0]:
+    matching_choice = params["matching_conditions"][0]
+    
+    if matching_choice == "match_conditions" or (matching_choice is False):
         port_matching_condition = params["matching_conditions"][1]
-        if not _check_port_state(port_matching_condition, interface):
+        if port_matching_condition and not _check_port_state(port_matching_condition, interface):
             # and return None if it does not match
             return None, []
 
