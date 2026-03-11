@@ -127,21 +127,21 @@ SECTION_2: List = [
             ),
         ),
         (
-            {"discovery_single": (False, {}), "matching_conditions": (True, {})},
+            {"discovery_single": ("disabled", None), "matching_conditions": ("match_all", None)},
             SECTION_2,
             tuple(),
         ),
         (
             {
                 "discovery_single": (
-                    True,
+                    "enabled",
                     {
-                        "long_if_name": False,
-                        "pad_portnumbers": False,
+                        "long_if_name": "no",
+                        "pad_portnumbers": "no",
                         "labels": {"os": "aci_büchse"},
                     },
                 ),
-                "matching_conditions": (False, {"port_admin_states": ["2"]}),  # no effect for this check
+                "matching_conditions": ("match_conditions", {"port_admin_states": ["admin_down"]}),  # no effect for this check
             },
             SECTION_2,
             (
@@ -152,8 +152,8 @@ SECTION_2: List = [
         ),
         (
             {
-                "discovery_single": (True, {"long_if_name": False, "pad_portnumbers": True}),
-                "matching_conditions": (False, {"port_admin_states": ["1"]}),  # no effect for this check
+                "discovery_single": ("enabled", {"long_if_name": "no", "pad_portnumbers": "yes"}),
+                "matching_conditions": ("match_conditions", {"port_admin_states": ["admin_up"]}),  # no effect for this check
             },
             SECTION_2,
             (

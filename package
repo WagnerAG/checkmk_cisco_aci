@@ -1,7 +1,7 @@
 {
     "name": "cisco_aci",
     "title": "Special agent for Cisco ACI",
-    "version": "2.0.2",
+    "version": "2.0.4",
     "version.min_required": "2.3.0b1",
     "version.packaged": "2.4.0p19",
     "author": "Roger Ellenberger",
@@ -24,6 +24,7 @@
             "cisco_aci/graphing/metrics.py",
             "cisco_aci/graphing/perfometers.py",
             "cisco_aci/libexec/agent_cisco_aci",
+            "cisco_aci/rulesets/cisco_aci_discovery_parameters.py",
             "cisco_aci/rulesets/cisco_aci_check_parameters.py",
             "cisco_aci/rulesets/datasource_program.py",
             "cisco_aci/server_side_calls/agent_cisco_aci.py",
