@@ -26,6 +26,8 @@ from cmk.rulesets.v1.form_specs import (
     Float,
     DictElement,
     DefaultValue,
+    SimpleLevels,
+    LevelDirection,
 )
 from cmk.rulesets.v1.rule_specs import CheckParameters, Topic, HostAndItemCondition
 
@@ -270,4 +272,27 @@ rule_spec_aci_bgp_peer_entry_levels = CheckParameters(
     topic=Topic.NETWORKING,
     condition=HostAndItemCondition(Title("Cisco ACI BGP peer entry settings")),
     parameter_form=_form_spec_aci_bgp_peer_entry_levels,
+)
+
+def _form_spec_aci_node_levels():
+    return Dictionary(
+        elements={
+            'health_levels': DictElement(
+                required=False,
+                parameter_form=SimpleLevels(
+                    title=Title("Node Health Levels (warn/crit below)"),
+                    level_direction=LevelDirection.LOWER,
+                    form_spec_template=Integer(),
+                    prefill_fixed_levels=DefaultValue((95, 85)),
+                ),
+            ),
+        },
+    )
+
+rule_spec_aci_node_levels = CheckParameters(
+    title=Title("Cisco ACI Node Health Levels"),
+    name="aci_node_levels",
+    topic=Topic.NETWORKING,
+    condition=HostAndItemCondition(Title("Cisco ACI node health parameters")),
+    parameter_form=_form_spec_aci_node_levels,
 )
